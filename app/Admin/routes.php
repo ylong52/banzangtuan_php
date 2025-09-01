@@ -52,7 +52,10 @@ Route::group([
     $router->resource('promotion', 'PromotionController');
     $router->get('promotion/export', 'PromotionController@export')->name('promotion.export');
     //订单
-    $router->resource('ayqy-orders', 'AyqyOrdersController');
+    $router->resource('orders', 'OrdersController');
+    
+    //京东订单
+    $router->resource('jd-orders', 'JdOrdersController');
     
     //全局配置
     $router->resource('global-config', 'GlobalConfigController');
@@ -60,5 +63,8 @@ Route::group([
     //动态配置管理
     $router->resource('dynamic-property', 'DynamicPropertyController');
     $router->post('dynamic-property/save', 'DynamicPropertyController@save');
+
+    //用户佣金结算表
+    $router->resource('user-commission-settlement', 'UserCommissionSettlementController');
 
 });
