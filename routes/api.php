@@ -42,6 +42,13 @@ Route::any('/checkToken', [App\Http\Controllers\Api\TokenController::class, 'che
 
 Route::post('/upload', [App\Http\Controllers\Api\FileUploadController::class, 'upload']);  //上传图片
 
+// 用户名搜索API（用于后台管理用户筛选）
+Route::get('/users', function (Request $request) {
+    $q = $request->get('q');
+    return \App\Models\User::where('username', 'like', "%$q%")
+        ->paginate(null, ['id', 'username as text']);
+});
+
 //jd转链接
 Route::match(['get', 'post'], '/jdshop/bysubunionid',[App\Http\Controllers\Api\JdApiController::class,'bysubunionid']);
 

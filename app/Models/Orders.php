@@ -23,35 +23,24 @@ class Orders extends Model
      */
     protected $fillable = [
         'id',                // 唯一标识，varchar(50)
+        'user_id',           // 用户ID，int(11)
+        'sub_union_id',      // 子渠道标识，varchar(80)
         'sku_name',          // 标题，varchar(255)
         'order_id',          // 订单号，varchar(30)
-        'finish_time',       // 完成时间，datetime
-        'order_time',        // 下单时间，datetime
-        'modify_time',       // 更新时间，datetime
+        'sku_num',           // 商品数量，int(10)
+        'price',             // 单价，decimal(10,2)
+        'total_price',       // 总价，decimal(10,2)
         'sku_id',            // SKU ID，varchar(30)
-        'valid_code',        // 下单状态，int
+        'valid_code',        // 下单状态，int(5)
         'image_url',         // SKU主图链接，varchar(255)
-        'owner',             // 所有者，varchar(255)
         'shop_name',         // 店铺名称，varchar(255)
         'commission_rate',   // 佣金比例(%)，decimal(10,2)
-        'sub_side_rate',     // 分成比例(%)，decimal(10,2)
-        'subsidy_rate',      // 补贴比例(%)，decimal(10,2)
-        'final_rate',        // 最终分佣比例(%)，decimal(10,2)
         'estimate_cos_price',// 预估计佣金额，decimal(15,2)
         'estimate_fee',      // 推客的预估佣金，decimal(15,2)
-        'actual_cos_price',  // 实际计算佣金的金额，decimal(15,2)
-        'actual_fee',        // 推客分得的实际佣金，decimal(15,2)
-        'sub_union_id',      // 子渠道标识，varchar(80)
-        'created_at',        // 创建时间，datetime
+        'order_time',        // 下单时间，datetime
+        'modify_time',       // 更新时间，datetime
+        'finish_time',       // 完成时间，datetime
         'updated_at',        // 修改时间，datetime
-        'request_time',      // 请求时间，datetime
-        'user_id',           // 用户ID，int(11)
-        'order_json',        // 订单JSON数据，longtext
-        'sku_num',           // 商品数量，int(11)
-        'express_status',  // 快递状态，int(11)
-        'price',           // 商品单价，decimal(15,2)
-        'total_price',     // 商品总价，decimal(15,2)
-        'sku_num',         // 商品数量，int(11)
     ];
 
     /**
@@ -74,15 +63,13 @@ class Orders extends Model
      */
     protected $casts = [
         'commission_rate' => 'float',
-        'sub_side_rate' => 'float',
-        'subsidy_rate' => 'float',
-        'final_rate' => 'float',
         'estimate_cos_price' => 'float',
         'estimate_fee' => 'float',
-        'actual_cos_price' => 'float',
-        'actual_fee' => 'float',
         'user_id' => 'integer',
-        'order_json' => 'array', // 若需要将longtext转换为数组
+        'sku_num' => 'integer',
+        'valid_code' => 'integer',
+        'price' => 'float',
+        'total_price' => 'float',
     ];
 
     //虚拟字段
@@ -95,7 +82,9 @@ class Orders extends Model
         return $value ? date('Y-m-d H:i:s', strtotime($value)) : null;
     }
 
-    
+    public function getFinishTimeAttribute($value) {
+        return $value ? date('Y-m-d H:i:s', strtotime($value)) : null;
+    }
 
     //状态文本方法
     public function status_txt($val = null) {

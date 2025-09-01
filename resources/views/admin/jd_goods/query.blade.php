@@ -24,7 +24,7 @@
                     <!-- 商品链接输入区域 -->
                     <div class="form-group">
                         <label for="goodsKeyword">商品链接或关键词：</label>
-                        <textarea class="form-control" id="goodsKeyword" rows="3"  placeholder="【京东】https://u.jd.com/YO58R3K「爱他美澳洲白金2段6罐 社群领券」">【京东】https://u.jd.com/YO58R3K「爱他美澳洲白金2段6罐 社群领券」</textarea>
+                        <textarea class="form-control" id="goodsKeyword" rows="3"  placeholder="【京东】https://u.jd.com/YO58R3K「爱他美澳洲白金2段6罐 社群领券」"></textarea>
                     </div>
                     
                     <div class="form-group">

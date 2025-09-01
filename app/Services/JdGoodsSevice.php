@@ -181,30 +181,23 @@ class JdGoodsSevice
                     // 准备订单数据
                     $orderData = [
                         'id' => $order['id'] ?? '',
+                        'user_id' => null, // 暂时设为null，后续可以根据需要设置
+                        'sub_union_id' => $order['subUnionId'] ?? '',
                         'sku_name' => $order['skuName'] ?? '',
                         'order_id' => $order['orderId'] ?? '',
-                        'finish_time' => !empty($order['finishTime']) ? $order['finishTime'] : null,
-                        'order_time' => !empty($order['orderTime']) ? $order['orderTime'] : null,
-                        'modify_time' => !empty($order['modifyTime']) ? $order['modifyTime'] : null,
+                        'sku_num' => $order['skuNum'] ?? 0,
+                        'price' => $order['price'] ?? 0,
+                        'total_price' => round($order['skuNum'] * $order['price'], 2),
                         'sku_id' => $order['skuId'] ?? '',
                         'valid_code' => $order['validCode'] ?? 0,
                         'image_url' => $goodsInfo['imageUrl'] ?? '', // 从goodsInfo中获取
-                        'owner' => $goodsInfo['owner'] ?? '', // 从goodsInfo中获取
                         'shop_name' => $goodsInfo['shopName'] ?? '', // 从goodsInfo中获取
                         'commission_rate' => $order['commissionRate'] ?? 0,
-                        'sub_side_rate' => $order['subSideRate'] ?? 0,
-                        'subsidy_rate' => $order['subsidyRate'] ?? 0,
-                        'final_rate' => $order['finalRate'] ?? 0,
                         'estimate_cos_price' => $order['estimateCosPrice'] ?? 0,
                         'estimate_fee' => $order['estimateFee'] ?? 0,
-                        'actual_cos_price' => $order['actualCosPrice'] ?? 0,
-                        'actual_fee' => $order['actualFee'] ?? 0,
-                        'sub_union_id' => $order['subUnionId'] ?? '',
-                   
-                        'sku_num'=> $order['skuNum'] ?? 0,
-                        'price' => $order['price'] ?? 0,
-                        'total_price' => round($order['skuNum'] * $order['price'], 2),
-                        'order_json' => json_encode($order, JSON_UNESCAPED_UNICODE), // 保存完整的原始订单数据 
+                        'order_time' => !empty($order['orderTime']) ? $order['orderTime'] : null,
+                        'modify_time' => !empty($order['modifyTime']) ? $order['modifyTime'] : null,
+                        'finish_time' => !empty($order['finishTime']) ? $order['finishTime'] : null,
                     ];
 
                     // 查找现有订单
