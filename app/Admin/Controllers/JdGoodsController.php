@@ -33,8 +33,25 @@ class JdGoodsController extends AdminController
 
         $grid->column('id', __('ID'))->sortable();
         $grid->column('goodsname', __('商品名称')); 
-
-                
+        $grid->column("keyword", __("关键词"));
+        $grid->column("white_image", __("主图"))->image('', 80, 80);
+        $grid->column("commission_info", __("佣金信息"))->display(function ($value) {
+            $commissionInfo = json_decode($value, true);
+            if (isset($commissionInfo['commission'])) {
+                return "佣金：￥" . $commissionInfo['commission'] . "% \n佣金比率：" . $commissionInfo['commissionShare'] . "%";
+            } else {
+                return "佣金：￥0% \n佣金比率：0%";
+            }
+        });
+        $grid->column("shopinfo", __("店铺"))->display(function ($value) {
+            $shopInfo = json_decode($value, true);
+            return $shopInfo['shopName'];
+        });
+        $grid->column("share_copywriting", __("分享文案"));
+        $grid->column("updated_at", __("更新时间"))->display(function ($value) {
+            return $value ? date('Y-m-d H:i:s', strtotime($value)) : '';
+        });
+ 
         // 添加新增按钮，链接到查询页面
         $grid->tools(function ($tools) {
             $tools->append('<a href="' . admin_url('jdgoods/query') . '" class="btn btn-sm btn-success"><i class="fa fa-plus"></i> 新增商品</a>');
@@ -45,27 +62,28 @@ class JdGoodsController extends AdminController
         $grid->disableRowSelector();
         $grid->disableCreateButton();
         
-        $grid->actions(function ($actions) {
-            $actions->disableDelete();
-            $actions->disableEdit();
-        });
+        // $grid->actions(function ($actions) {
+        //     $actions->disableDelete();
+        //     $actions->disableEdit();
+        // });
         return $grid;
     }
 
-    
+    protected function detail($id)
+    {
+        $show = new Show(Goods::findOrFail($id));
+        return $show;
+    }
 
     protected function form()
     {
         $form = new Form(new Goods());
         $form->textarea('goodsname', '商品名称')->rules('required|max:255');
-        
+        $form->textarea('share_copywriting', '分享文案')->rules('required|max:255');
+       
         // 保存前处理软删除
         $form->saving(function (Form $form) {
-            if ($form->deleted_at == 1) {
-                $form->deleted_at = now();
-            } else {
-                $form->deleted_at = null;
-            }
+            
         });
         return $form;
     }
