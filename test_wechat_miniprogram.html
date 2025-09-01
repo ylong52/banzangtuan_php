@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微信小程序手机号获取测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: #07c160;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #06ad56;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .step {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>微信小程序手机号获取测试</h1>
+        
+        <div class="step">
+            <h3>⚠️ 重要说明</h3>
+            <p>这个页面用于测试微信小程序手机号获取功能。在实际使用中，你需要：</p>
+            <ol>
+                <li>在微信开发者工具中创建小程序项目</li>
+                <li>使用真实的微信 AppID 和 AppSecret</li>
+                <li>通过 <code>wx.getPhoneNumber()</code> 获取手机号</li>
+                <li>将获取到的数据发送到后端接口</li>
+            </ol>
+        </div>
+
+        <div class="form-group">
+            <label for="apiUrl">后端接口地址：</label>
+            <input type="text" id="apiUrl" value="http://localhost:8000/api/autoRegisterAndLogin" placeholder="输入你的后端接口地址">
+        </div>
+
+        <div class="form-group">
+            <label for="openid">微信 OpenID（模拟）：</label>
+            <input type="text" id="openid" value="wx_test_openid_123" placeholder="输入模拟的微信 OpenID">
+        </div>
+
+        <div class="form-group">
+            <label for="invitationCode">邀请码（可选）：</label>
+            <input type="text" id="invitationCode" value="1234" placeholder="输入邀请码">
+        </div>
+
+        <div class="form-group">
+            <label for="encryptedData">加密数据（模拟）：</label>
+            <textarea id="encryptedData" placeholder="这里应该填入从微信小程序获取的真实加密数据">eVrort8nzJdxugoTVkZ9vvS26RYFukhA4ZC0W4f8e7HaP7m6F4QvI1XqQeCJ9oHu0AxnJ4LB5CP+xJtItX2YXHg2T1\/eoCSU\/P0Zs0yq4W+0XSOg9FENKVQ5qZA6Yxdciy+5GuSagF060o9QcCHm1G9wHX9+KhEV4Qy6YZSuKpkW7lV5+rwfO+qd+MXm9GKGyvfzdEWXENzaqTJ+mTTeyA==</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="iv">初始向量（模拟）：</label>
+            <input type="text" id="iv" value="qDk9Xq1vvk21ML62\/Nir8g==" placeholder="输入初始向量">
+        </div>
+
+        <div class="form-group">
+            <label for="code">授权码（模拟）：</label>
+            <input type="text" id="code" value="test_code_123" placeholder="输入授权码（这个需要从微信服务器获取）">
+        </div>
+
+        <div class="form-group">
+            <button onclick="testAPI()">测试 API 调用</button>
+            <button onclick="generateTestData()">生成测试数据</button>
+            <button onclick="clearResult()">清除结果</button>
+        </div>
+
+        <div id="result"></div>
+
+        <div class="step">
+            <h3>📱 微信小程序端代码示例</h3>
+            <div class="code-block">
+// 获取手机号
+wx.getPhoneNumber({
+    success: (res) => {
+        console.log('获取手机号成功:', res);
+        
+        // 发送到后端
+        wx.request({
+            url: 'YOUR_API_URL',
+            method: 'POST',
+            data: {
+                detail: res,
+                openid: 'user_openid',
+                invitationCode: '1234' // 可选
+            },
+            success: (response) => {
+                if (response.data.status === 'success') {
+                    // 保存 token
+                    wx.setStorageSync('token', response.data.data.token);
+                    // 保存用户信息
+                    wx.setStorageSync('userInfo', response.data.data.user);
+                }
+            }
+        });
+    },
+    fail: (err) => {
+        console.error('获取手机号失败:', err);
+    }
+});
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>🔧 调试步骤</h3>
+            <ol>
+                <li>确保后端服务正在运行</li>
+                <li>检查微信配置文件 <code>config/wechat.php</code></li>
+                <li>确认 AppID 和 AppSecret 正确</li>
+                <li>使用真实的微信 code（从微信开发者工具获取）</li>
+                <li>检查网络连接和防火墙设置</li>
+                <li>查看后端日志文件</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function testAPI() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const openid = document.getElementById('openid').value;
+            const invitationCode = document.getElementById('invitationCode').value;
+            const encryptedData = document.getElementById('encryptedData').value;
+            const iv = document.getElementById('iv').value;
+            const code = document.getElementById('code').value;
+
+            if (!apiUrl || !openid || !encryptedData || !iv || !code) {
+                showResult('请填写所有必填字段', 'error');
+                return;
+            }
+
+            const requestData = {
+                detail: {
+                    errMsg: 'getPhoneNumber:ok',
+                    encryptedData: encryptedData,
+                    iv: iv,
+                    code: code
+                },
+                openid: openid,
+                invitationCode: invitationCode
+            };
+
+            showResult('正在发送请求...', 'info');
+
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showResult('✅ 请求成功！\n\n' + JSON.stringify(data, null, 2), 'success');
+                } else {
+                    showResult('❌ 请求失败\n\n' + JSON.stringify(data, null, 2), 'error');
+                }
+            })
+            .catch(error => {
+                showResult('❌ 网络错误\n\n' + error.message, 'error');
+            });
+        }
+
+        function generateTestData() {
+            // 生成随机的测试数据
+            const randomCode = 'test_code_' + Math.random().toString(36).substr(2, 9);
+            const randomOpenid = 'wx_test_' + Math.random().toString(36).substr(2, 9);
+            
+            document.getElementById('code').value = randomCode;
+            document.getElementById('openid').value = randomOpenid;
+            
+            showResult('已生成测试数据', 'info');
+        }
+
+        function clearResult() {
+            document.getElementById('result').innerHTML = '';
+        }
+
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="result ${type}">${message}</div>`;
+        }
+    </script>
+</body>
+</html>

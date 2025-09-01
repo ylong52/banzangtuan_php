@@ -1,0 +1,14 @@
+# 支付宝证书文件
+*.crt
+*.pem
+*.key
+*.p12
+*.pfx
+
+# 私钥文件（安全考虑）
+private_key.pem
+app_private_key.pem
+
+# 证书备份
+*.bak
+*.backup
