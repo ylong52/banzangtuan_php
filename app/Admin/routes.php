@@ -66,5 +66,6 @@ Route::group([
 
     //用户佣金结算表
     $router->resource('user-commission-settlement', 'UserCommissionSettlementController');
-
+ 
+    $router->post('user-commission-settlement/getUserStats', 'UserCommissionSettlementController@getUserStats');
 });

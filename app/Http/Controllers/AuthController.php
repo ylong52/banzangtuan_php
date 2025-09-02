@@ -45,11 +45,12 @@ class AuthController extends ApiController
             $code = $request->input('detail.code');
             $openid = $request->input('openid');
             $invitationCode = $request->input('invitationCode');
-
+            if ($invitationCode == '888888') {
+                $invitationCode = '';
+            }
             // 通过code获取session_key
             $phoneNumber = $this->getSessionKeyByPhone($code);
-           
-          
+                     
             if (!$phoneNumber) {               
                 throw new \Exception('手机号解密失败',400);
             }
@@ -59,93 +60,27 @@ class AuthController extends ApiController
                        ->orWhere('phone', $phoneNumber)
                        ->first();
 
-            if ($user) {
-                // 用户已存在，更新openid（如果之前没有）
-                if (empty($user->wechat_openid)) {
-                    $user->wechat_openid = $openid;
-                    $user->save();
-                }
-                if ($user->status == 0) {
-                    throw new \Exception('用户已禁止登录',400);
-                }
-                // 生成token
-                $token = $user->createToken('wechat-token', ['*'], now()->addDays(365))->plainTextToken;
-                
-                $userInfo = $user->makeHidden(['password', 'deleted_at', 'created_at', 'updated_at', 'balance' ]);
-                
-                return response()->json([
-                    'status' => 'success',
-                    'message' => '登录成功',
-                    'data' => [
-                        'token' => $token,
-                        'token_type' => 'Bearer',
-                        'expires_in' => 60 * 60 * 24 * 365, // 365天（秒）
-                        'user' => $userInfo,
-                        'is_new_user' => false
-                    ]
-                ], 200);
-            } else {
+            if (!$user) {
                 // 用户不存在，创建新用户
                 DB::beginTransaction();
                 try {
                     $max_id = User::withTrashed()->max('id');
-                    if (empty($max_id) || $max_id < 10000) {
-                        $current_id = 10000;
+                    if (empty($max_id) || $max_id < 1000) {
+                        $current_id = 1000;
                     } else {
                         $current_id = $max_id + 1;
                     }
 
-                    // 生成随机用户名
-                    // $username = $this->generateUniqueUsername($phoneNumber);
-
                     $user = User::create([
-                        'id' => $current_id,
-                        // 'username' => $username,
+                        'id' => $current_id,                     
                         'phone' => $phoneNumber,
                         'wechat_openid' => $openid,
                         'password' => Hash::make(Str::random(16)), // 生成随机密码
                         'status' => 1,
                     ]);
-
-                    // 处理邀请码
-                    if (!empty($invitationCode)) {
-                        $inviteUser = User::where('id', $invitationCode)->first();
-                        if ($inviteUser) {
-                            // 新增推广记录
-                            $invite_amount = GlobalConfig::where(['status' => 1, 'key' => 'invite_amount'])->value('value');
-                            $promotion = new \App\Models\Promotion();
-                            $promotion->user_id = $user->id;  // 新用户
-                            $promotion->referred_by = $invitationCode;  // 推荐人
-                            $promotion->referral_code = $invitationCode;  // 推荐人
-                            $promotion->registration_time = date('Y-m-d H:i:s');
-                            $promotion->reward_amount = $invite_amount;
-                            $promotion->reward_status = 1;  // 1已发放
-                            $promotion->save();
-                            
-                            // 更新用户余额日志
-                            $this->updateuser_balance_log($user->id, $invitationCode);
-                        }
-                    }
-
+                    $user->save();
                     DB::commit();
-
-                    // 生成token
-                    $token = $user->createToken('wechat-token', ['*'], now()->addDays(7))->plainTextToken;
-                    
-                    $userInfo = $user->makeHidden(['password', 'deleted_at', 'created_at', 'updated_at', 'balance_password']);
-                    
-                    return response()->json([
-                        'status' => 'success',
-                        'message' => '注册成功',
-                        'data' => [
-                            'token' => $token,
-                            'token_type' => 'Bearer',
-                            'expires_in' => 60 * 60 * 24 * 7, // 7天（秒）
-                            'user' => $userInfo,
-                            'is_new_user' => true
-                        ]
-                    ], 200);
-
+                    $user = User::where('id', $user->id)->first();
                 } catch (\Exception $e) {
                     DB::rollBack();
                     save_log($e->getMessage(), 'wechat_register_error');
@@ -155,7 +90,31 @@ class AuthController extends ApiController
                     ], 500);
                 }
             }
+            if ($user->status == 0) {
+                throw new \Exception('用户已禁止登录',400);
+            }
+          
+            if (empty($user->invitation_code)) {
+                $user->invitation_code = $this->generateInvitationCode();  //新用户生成自己的invitation_code
+                $user->sub_union_id = config('app.subUnionIdx').$user->invitation_code;
+                $user->save();
+            }
+            $this->saveUserPromotion($user->id, $invitationCode);
+            // 生成token
+            $token = $user->createToken('wechat-token', ['*'], now()->addDays(365))->plainTextToken;
+                            
+            $userInfo = $user->makeHidden(['password', 'deleted_at', 'created_at', 'updated_at', 'balance' ]);
 
+            return response()->json([
+                'status' => 'success',
+                'message' => '登录成功',
+                'data' => [
+                    'token' => $token,
+                    'token_type' => 'Bearer',
+                    'expires_in' => 60 * 60 * 24 * 365, // 365天（秒）
+                    'user' => $userInfo 
+                ]
+            ], 200);
         } catch (\Exception $e) {
             save_log($e->getMessage(), 'wechat_auto_register_error');
             return response()->json([
@@ -163,6 +122,43 @@ class AuthController extends ApiController
                 'message' => '系统错误: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function saveUserPromotion($user_id, $invitation_code) {       
+        if (!$this->verifyInvitationCode($invitation_code)) {
+            return false;
+        }
+        $promotion = new \App\Models\Promotion();
+        $promotion->user_id = $user_id; //新用户
+        $promotion->referred_by = $invitation_code;  // 推荐人
+        $promotion->referral_code = $invitation_code;  // 推荐人
+        $promotion->registration_time = date('Y-m-d H:i:s');
+        $promotion->reward_amount = 0;
+        $promotion->reward_status = 0; 
+        $promotion->save();
+    }   
+
+    private function verifyInvitationCode($invitationCode) { 
+        if (intval($this->user_id) == 0 ){
+            return false;
+        } 
+        $count = User::where('invitation_code', $invitationCode)        
+        ->where('id', '!=', $this->user_id)
+        ->count();
+        if ($count > 0){
+            return true;
+        }
+        return false;
+    }
+
+    private function generateInvitationCode() {
+        do {
+            // 生成2位随机数字（00-99）
+            $invitationCode = generateString();            
+            // 检查数据库中是否已存在该用户名
+            $exists = User::where('invitation_code', $invitationCode)->exists();            
+        } while ($exists); // 若存在则重新生成
+        return $invitationCode;
     }
 
     public function generateUniqueUsername(string $phoneNumber): string
@@ -599,6 +595,39 @@ class AuthController extends ApiController
         }
     }
 
- 
+    public function checkInvitationCode(Request $request) {
+        $validator = Validator::make($request->all(), [
+            'invitationCode' => 'required|string|max:50',
+        ], [
+            'invitationCode.required' => '邀请码不能为空',
+            'invitationCode.max' => '邀请码不能超过50个字符',
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 400);
+        }
+        $invitationCode = $request->invitationCode;
+        if ($invitationCode == '888888') {
+            return response()->json([
+                'status' => 'success',
+                'message' => '邀请码有效'
+            ], 200);
+        }
+        $user = User::where('invitation_code', $invitationCode)->first();
+        
+        if ($user) {
+            return response()->json([
+                'status' => 'success',
+                'message' => '邀请码有效'
+            ], 200);
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => '邀请码无效'
+            ], 200);
+        }
+    }
 
 }

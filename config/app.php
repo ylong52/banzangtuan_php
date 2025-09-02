@@ -15,7 +15,7 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
     'logging' => 'custom_daily', 
-    'subUnionIdx' => 'T2025_08_u01', // 推广位
+    'subUnionIdx' => 'JQ2025', // 推广位
     /*
     |--------------------------------------------------------------------------
     | Application Environment

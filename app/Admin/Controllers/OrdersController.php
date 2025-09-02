@@ -22,7 +22,25 @@ class OrdersController extends AdminController
 
     protected function grid()
     {
+        // 方法1: 直接在模型初始化时添加查询条件
         $grid = new Grid(new Orders());
+        
+        // 可以添加默认的查询条件
+        // 例如：只显示今天的订单
+        // $grid->model()->whereDate('created_at', date('Y-m-d'));
+        
+        // 例如：只显示有效的订单
+        // $grid->model()->whereIn('valid_code', [16, 17]);
+        $request = request();
+        //created_at[start]=2025-09-02&created_at[end]=2025-09-02
+        if ($request->has('order_time') && $request->get('order_time')) {
+            $start = $request->get('order_time')['start'] . ' 00:00:00';
+            $end = $request->get('order_time')['end'] . ' 23:59:59';
+            $grid->model()->whereBetween('order_time', [$start, $end]);
+        }
+ 
+        // 例如：按创建时间倒序排列
+        $grid->model()->orderBy('created_at', 'desc');
 
         // 添加统计信息
         $grid->header(function () {
@@ -98,8 +116,7 @@ class OrdersController extends AdminController
         });
 
         $grid->column('id', __('ID'))->sortable();
-        $grid->column('order_id', __('订单ID'))->sortable();
-        
+        $grid->column('order_id', __('订单ID'))->sortable();        
         
         // 显示商品标题
         $grid->column('sku_name', __('商品标题'));
@@ -151,16 +168,12 @@ class OrdersController extends AdminController
 
         // 查询设置
         $grid->filter(function (Filter $filter) {
-            $filter->disableIdFilter();
-            
+            $filter->disableIdFilter();            
             // 商品标题查询
             $filter->like('sku_name', '商品标题');
-            
-           
-             
+                                    
             // 订单号查询
-            $filter->like('order_id', '订单号');
-            
+            $filter->like('order_id', '订单号');            
             // 订单状态查询
             $filter->equal('valid_code', '订单状态')->select([
                 -1 => '未知',
@@ -169,10 +182,9 @@ class OrdersController extends AdminController
                 16 => '已付款',
                 17 => '已完成',
                 24 => '已付定金'
-            ]);
-            
+            ]);            
             // 时间区间查询
-            $filter->between('created_at', '创建时间')->datetime();
+            $filter->between('order_time', '下单时间')->date();
         });
 
         // 关闭操作按钮

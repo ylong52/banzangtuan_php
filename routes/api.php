@@ -28,7 +28,9 @@ Route::get('/welcome', function () {
         'timestamp' => now()
     ]);
 });
-
+ 
+Route::post('/checkInvitationCode', [App\Http\Controllers\AuthController::class, 'checkInvitationCode']);
+ 
 
 Route::post('/autoRegisterAndLogin', [App\Http\Controllers\AuthController::class, 'autoRegisterAndLogin']);
 
@@ -60,6 +62,13 @@ Route::match(['get', 'post'], '/jdshop/orderQuery',[App\Http\Controllers\Api\JdA
 Route::match(['get', 'post'], '/order/index',[App\Http\Controllers\Api\OrdersController::class,'index']);
 
 Route::match(['get', 'post'], '/jdshop/goodslist',[App\Http\Controllers\Api\JdGoodsController::class,'index']);
+
+
+Route::match(['get', 'post'], '/income/index',[App\Http\Controllers\Api\IncomeController::class,'index']);
+
+Route::match(['get', 'post'], '/income/sumorder',[App\Http\Controllers\Api\IncomeController::class,'sumorder']);
+
+Route::match(['get', 'post'], '/income/orderlists',[App\Http\Controllers\Api\IncomeController::class,'orderlists']);
 
 //--- 路由组开始,需要验证token
 Route::middleware('auth:sanctum')->group(function () {

@@ -143,6 +143,7 @@ class UserController extends ApiController
             $user->id_card = $data['id_card'];
             $user->bank_card = $data['bank_card'];
             $user->bank_phone = $data['bank_phone'];
+           
             $user->save();
             return response()->json(['status' => 'success','msg' => '提交成功']);
          

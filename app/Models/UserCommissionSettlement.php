@@ -25,6 +25,8 @@ class UserCommissionSettlement extends Model
     protected $fillable = [
         'user_id',             // 用户ID
         'bill_no',             // 账单编号
+        'settlement_year',     // 结算年份
+        'settlement_month',    // 结算月份
         'after_tax_income',    // 税后收入
         'general_commission',  // 普通佣金
         'reward_commission',   // 奖励佣金
@@ -33,6 +35,7 @@ class UserCommissionSettlement extends Model
         'is_paid',             // 是否已打款
         'remark'               // 备注
     ];
+
 
     /**
      * 应该被转换为日期的属性
@@ -243,6 +246,8 @@ class UserCommissionSettlement extends Model
         return $this->updated_at ? $this->updated_at->format('Y-m-d H:i:s') : '';
     }
 
+ 
+
     /**
      * 获取创建时间的日期显示（仅日期）
      *
@@ -311,5 +316,10 @@ class UserCommissionSettlement extends Model
         $minute = $this->created_at->format('i');
         
         return "{$year}年{$month}月{$day}日 {$hour}时{$minute}分";
+    }
+
+    public function getIsPaidFormattedAttribute(): string
+    {
+        return $this->is_paid ? '已结算' : '未结算';
     }
 }

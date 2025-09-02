@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Encore\Admin\Controllers\AuthController as BaseAuthController;
 use App\Models\Orders;
 use App\Models\User;
+use Illuminate\Http\Request;
 use App\Models\UserCommissionSettlement;
 
 class UserCommissionSettlementController extends AdminController
@@ -25,8 +26,10 @@ class UserCommissionSettlementController extends AdminController
 
         $grid->column('user.username', __('用户名'));
         $grid->column('bill_no', __('账单编号'));
-        $grid->column('settlement_period', __('结算月份'))->display(function ($value, $model) {
-            return $this->settlement_year . '年' . ltrim($this->settlement_month, '0') . '月';
+        $grid->column('settlement_period', __('结算月份'))->display(function ($value) {
+            $settlement_year = $this->getOriginal('settlement_year');
+            $settlement_month = $this->getOriginal('settlement_month');
+            return $settlement_year . '年' . ltrim($settlement_month, '0') . '月';
         });
         $grid->column('after_tax_income', __('税后收入'));
         $grid->column('general_commission', __('普通佣金'));
@@ -69,18 +72,25 @@ class UserCommissionSettlementController extends AdminController
         return $grid;
     }
 
-    private function sumorder($user_id)
+    public function sumorder($user_id=0)
     {
+       
+        $sum_estimate_fee['last_month_estimate_fee'] =0;
+        $sum_estimate_fee['last_month_actual_fee'] =0;
+        $sum_estimate_fee['last_month_order_count'] =0;
+        if ($user_id==0) {            
+            return $sum_estimate_fee;
+        }
         //上月
         $sum_estimate_fee['last_month_estimate_fee'] = Orders::query()
             ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
-            // ->where('user_id', $this->user_id)
+            ->where('user_id', $user_id)
             ->whereIn('valid_code', [16, 17])
             ->sum('estimate_fee');   //是预估佣金
 
         $sum_estimate_fee['last_month_actual_fee'] = Orders::query()
             ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
-            // ->where('user_id', $user_id)
+            ->where('user_id', $user_id)
             ->whereIn('valid_code', [16, 17])
             ->sum('actual_fee'); //实际佣金（买家收货之后没有退款的）
    
@@ -88,7 +98,7 @@ class UserCommissionSettlementController extends AdminController
         // 上月有多少单
         $sum_estimate_fee['last_month_order_count'] = Orders::query()
             ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
-            // ->where('user_id', $user_id)
+            ->where('user_id', $user_id)
             ->whereIn('valid_code', [16, 17])
             ->count();   //订单数
         
@@ -96,52 +106,52 @@ class UserCommissionSettlementController extends AdminController
         return $sum_estimate_fee;
     }
 
+    public function getUserStats(Request $request)
+    {
+        $userId = $request->get('q');
+        
+        if (empty($userId)) {
+            $userId = 0; // 默认值
+        }
+        
+        // 获取用户统计数据
+        $stats = $this->sumorder($userId);
+        
+        // 渲染统计卡片视图
+        $html = view('admin.commission.stats_card', ['stats' => $stats])->render();
+        
+        return response()->json([
+            'html' => $html
+        ]);
+    }
 
     protected function form()
     {
         $form = new Form(new UserCommissionSettlement());
+      
 
-        // 用户ID选择器 - 独占一行
-        $form->select('user_id', __('用户ID'))
-            ->options(User::pluck('username', 'id'))
+        $form->row(function($row) {
+            $row->width(6)->select('user_id', __('用户ID'))
+            ->options(['' => '请选择用户'] + User::pluck('username', 'id')->toArray())
             ->required()
             ->help('选择对应的用户');
+        });
 
-        // 获取统计数据
-        $sum_estimate_fee = $this->sumorder(1); // 默认用户ID为1，后续可以动态获取
+        // 获取默认统计数据
+        $sum_estimate_fee = $this->sumorder(0);
         
-        // 组装统计卡片HTML字符串
-        $statsHtml = '
-            <div class="box box-primary">
-                <div class="box-header with-border">
-                    <h3 class="box-title"><i class="fa fa-bar-chart"></i> '.date('Y-m', strtotime('last month')).'佣金统计概览</h3>
-                </div>
-                <div class="box-body">
-           
-                    <div class="row" style="margin-top: 20px;">
-                        <div class="col-md-6">
-                            <div class="info-box">
-                                <span class="info-box-icon bg-blue"><i class="fa fa-line-chart"></i></span>
-                                <div class="info-box-content">
-                                    <span class="info-box-text" style="font-size: 14px; color: #0073aa; font-weight: bold; display: block; height: 30px; line-height: 30px;">上月预估总佣金&nbsp;&nbsp;&nbsp;¥' . number_format($sum_estimate_fee['last_month_estimate_fee'], 2) . '</span>
-                                    <span class="info-box-text" style="font-size: 14px; color: #0073aa; font-weight: bold; display: block; height: 30px; line-height: 30px;">上月实际总佣金&nbsp;&nbsp;&nbsp;¥' . number_format($sum_estimate_fee['last_month_actual_fee'], 2) . '</span>
-                                    <span class="info-box-text" style="font-size: 14px; color: #0073aa; font-weight: bold; display: block; height: 30px; line-height: 30px;">上月订单总数&nbsp;&nbsp;&nbsp;' . $sum_estimate_fee['last_month_order_count'] . '</span>
-                                </div>
-                            </div>
-                        </div>
-                         
-                    </div>
-                </div>
-            </div>
-        ';
-
-        // 统计卡片行
+        // 使用view模板渲染统计卡片
+        $statsHtml = view('admin.commission.stats_card', ['stats' => $sum_estimate_fee])->render();
+        
+        // 统计卡片行 - 添加ID以便AJAX更新
         $form->row(function($row) use ($statsHtml) {
-            $row->width(12)->html($statsHtml);
+            $row->width(12)->html('<div id="stats_card">' . $statsHtml . '</div>');
         });
 
         // 账单信息行
         $form->row(function($row) {
+       
+
             // 账单编号 - 独占一行
             $row->width(2)->text('bill_no', __('账单编号'))
             ->required()
@@ -255,9 +265,18 @@ class UserCommissionSettlementController extends AdminController
             // }
         });
 
+        // 添加JavaScript脚本
+        $form->footer(function ($footer) {
+            $footer->disableReset();
+            $footer->disableViewCheck();
+        });
+
+
+
         return $form;
     }
 
+ 
 
     /**
      * 详情页面
@@ -270,7 +289,9 @@ class UserCommissionSettlementController extends AdminController
         $show->field('user.username', __('用户名'));
         $show->field('bill_no', __('账单编号'));
         $show->field('settlement_period', __('结算月份'))->as(function ($value, $model) {
-            return $model->settlement_year . '年' . ltrim($model->settlement_month, '0') . '月';
+            $settlement_year = $model->getOriginal('settlement_year');
+            $settlement_month = $model->getOriginal('settlement_month');
+            return $settlement_year . '年' . ltrim($settlement_month, '0') . '月';
         });
         
         // 金额相关字段
@@ -296,7 +317,9 @@ class UserCommissionSettlementController extends AdminController
         
         // 总佣金（计算字段）
         $show->field('total_commission', __('总佣金'))->as(function ($value, $model) {
-            $total = $model->general_commission + $model->reward_commission;
+            $general_commission = $model->getOriginal('general_commission') ?? 0;
+            $reward_commission = $model->getOriginal('reward_commission') ?? 0;
+            $total = $general_commission + $reward_commission;
             return '¥' . number_format($total, 2);
         });
         

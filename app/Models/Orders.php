@@ -76,13 +76,24 @@ class Orders extends Model
     public function getStatusTxtAttribute() {
         return $this->status_txt($this->valid_code);
     }
-
-    //时间格式为："2025-08-27T14:57:44.000000Z"
+    
     public function getOrderTimeAttribute($value) {
         return $value ? date('Y-m-d H:i:s', strtotime($value)) : null;
     }
 
     public function getFinishTimeAttribute($value) {
+        return $value ? date('Y-m-d H:i:s', strtotime($value)) : null;
+    }
+
+    public function getModifyTimeAttribute($value) {
+        return $value ? date('Y-m-d H:i:s', strtotime($value)) : null;
+    }
+    
+    public function getCreatedAtAttribute($value) {
+        return $value ? date('Y-m-d H:i:s', strtotime($value)) : null;
+    }
+ 
+    public function getUpdatedAtAttribute($value) {
         return $value ? date('Y-m-d H:i:s', strtotime($value)) : null;
     }
 

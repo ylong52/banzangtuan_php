@@ -34,7 +34,8 @@ class User extends Authenticatable
         'bank_real_name',
         'id_card',
         'bank_card',
-        'bank_phone'
+        'bank_phone',
+        'sub_union_id'
     ];
 
     /**
