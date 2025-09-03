@@ -44,6 +44,8 @@ class UserController extends AdminController
         $grid->column('username', __('姓名'));
 
         $grid->column('phone', __('手机号'));
+        $grid->column('invitation_code', __('推荐码'));
+        $grid->column('sub_union_id', __('Sub_union_id'));
         $grid->column('avatar', __('头像'))->image('', 50, 50);
         $grid->column('status', __('状态'))->display(function ($value) {
             return $value == 1 ? '有效' : '禁用';

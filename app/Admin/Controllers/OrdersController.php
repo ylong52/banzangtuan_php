@@ -33,14 +33,16 @@ class OrdersController extends AdminController
         // $grid->model()->whereIn('valid_code', [16, 17]);
         $request = request();
         //created_at[start]=2025-09-02&created_at[end]=2025-09-02
-        if ($request->has('order_time') && $request->get('order_time')) {
-            $start = $request->get('order_time')['start'] . ' 00:00:00';
-            $end = $request->get('order_time')['end'] . ' 23:59:59';
-            $grid->model()->whereBetween('order_time', [$start, $end]);
-        }
+
+        // if ($request->has('order_time')) {
+        //     $start = $request->get('order_time')['start'] . ' 00:00:00';
+        //     $end = $request->get('order_time')['end'] . ' 23:59:59';
+       
+        //     $grid->model()->whereRaw('order_time >= ? and order_time <= ?', [$start, $end]);
+        // }
  
         // 例如：按创建时间倒序排列
-        $grid->model()->orderBy('created_at', 'desc');
+        $grid->model()->orderBy('order_time', 'desc');
 
         // 添加统计信息
         $grid->header(function () {
@@ -58,34 +60,34 @@ class OrdersController extends AdminController
             // 总统计
             $totalEstimateCosPrice = Orders::query()
                 ->whereIn('valid_code', [16,17])
-                ->sum('estimate_cos_price');
+                ->sum('estimate_fee');
             $totalOrders = Orders::count();
             
             // 今天的统计
             $todayEstimateCosPrice = Orders::query()
                 ->whereIn('valid_code', [16,17])
-                ->whereBetween('created_at', [$todayStart, $todayEnd])
-                ->sum('estimate_cos_price');
+                ->whereBetween('order_time', [$todayStart, $todayEnd])
+                ->sum('estimate_fee');
             $todayOrders = Orders::query()
-                ->whereBetween('created_at', [$todayStart, $todayEnd])
+                ->whereBetween('order_time', [$todayStart, $todayEnd])
                 ->count();
             
             // 昨天的统计
             $yesterdayEstimateCosPrice = Orders::query()
                 ->whereIn('valid_code', [16,17])
-                ->whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])
-                ->sum('estimate_cos_price');
+                ->whereBetween('order_time', [$yesterdayStart, $yesterdayEnd])
+                ->sum('estimate_fee');
             $yesterdayOrders = Orders::query()
-                ->whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])
+                ->whereBetween('order_time', [$yesterdayStart, $yesterdayEnd])
                 ->count();
             
             // 最近7天的统计
             $sevenDaysEstimateCosPrice = Orders::query()
                 ->whereIn('valid_code', [16,17])
-                ->whereBetween('created_at', [$sevenDaysAgo, $todayEnd])
-                ->sum('estimate_cos_price');
+                ->whereBetween('order_time', [$sevenDaysAgo, $todayEnd])
+                ->sum('estimate_fee');
             $sevenDaysOrders = Orders::query()
-                ->whereBetween('created_at', [$sevenDaysAgo, $todayEnd])
+                ->whereBetween('order_time', [$sevenDaysAgo, $todayEnd])
                 ->count();
             
             return '<div class="alert alert-info">
@@ -115,13 +117,16 @@ class OrdersController extends AdminController
             </div>';
         });
 
-        $grid->column('id', __('ID'))->sortable();
-        $grid->column('order_id', __('订单ID'))->sortable();        
+        $grid->column('id', __('ID'))->sortable();        
+        $grid->column('username', __('用户昵称'));
+        $grid->column('order_id', __('订单ID'));     
         
         // 显示商品标题
         $grid->column('sku_name', __('商品标题'));
         // 增加 sub_union_id 字段的显示，并支持查询
-        $grid->column('sub_union_id', __('sub_union_id推广用户'));
+        $grid->column('sub_union_id', __('sub_union_id推广用户'))->sortable();
+        
+       
         // 在筛选器中加入 sub_union_id 查询
         $grid->filter(function ($filter) {
             // 其他筛选条件...
@@ -138,9 +143,9 @@ class OrdersController extends AdminController
         // $grid->column('estimate_cos_price', __('预估计佣金额'));
         $grid->column('estimate_fee', __('estimate_fee预估佣金'));
         $grid->column('actual_fee', __('actual_fee实际佣金'));
-        $grid->column('order_time', __('下单时间'));
-        // $grid->column('modify_time', __('订单更新时间'));
-        $grid->column('finish_time', __('订单完成时间'));
+        $grid->column('order_time', __('下单时间'))->sortable();
+        $grid->column('modify_time', __('订单更新时间'))->sortable();
+        $grid->column('finish_time', __('订单完成时间'))->sortable();
  
         // 根据订单状态 value 显示对应的中文标签
         $grid->column('valid_code', __('订单状态'))->display(function ($value) {
@@ -164,7 +169,7 @@ class OrdersController extends AdminController
  
         $grid->column('updated_at', __('系统更新时间'))->display(function ($value) {
             return $value ? date('Y-m-d H:i:s', strtotime($value)) : '';
-        });
+        })->sortable();
 
         // 查询设置
         $grid->filter(function (Filter $filter) {
@@ -173,7 +178,7 @@ class OrdersController extends AdminController
             $filter->like('sku_name', '商品标题');
                                     
             // 订单号查询
-            $filter->like('order_id', '订单号');            
+            $filter->equal('order_id', '订单号');            
             // 订单状态查询
             $filter->equal('valid_code', '订单状态')->select([
                 -1 => '未知',
@@ -184,7 +189,8 @@ class OrdersController extends AdminController
                 24 => '已付定金'
             ]);            
             // 时间区间查询
-            $filter->between('order_time', '下单时间')->date();
+            $filter->between('order_time', '下单时间')->datetime();
+             
         });
 
         // 关闭操作按钮
@@ -192,14 +198,12 @@ class OrdersController extends AdminController
             $actions->disableDelete();
             $actions->disableEdit();
         });
-
         // 关闭批量操作
         $grid->tools(function ($tools) {
             $tools->batch(function ($batch) {
                 $batch->disableDelete();
             });
         });
-
         return $grid;
     }
 

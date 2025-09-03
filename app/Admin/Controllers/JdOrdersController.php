@@ -21,8 +21,10 @@ class JdOrdersController extends AdminController
     protected function grid()
     {
         $grid = new Grid(new Orders());
+        $grid->model()->with('user');
 
         $grid->column('id', __('订单ID'))->sortable();
+        $grid->column('user.username', __('用户昵称'))->limit(20);
         $grid->column('order_id', __('京东订单号'))->sortable();
         $grid->column('sku_name', __('商品标题'))->limit(50);
         $grid->column('sku_id', __('SKU ID'));
@@ -59,6 +61,9 @@ class JdOrdersController extends AdminController
             
             // 京东订单号查询
             $filter->like('order_id', '京东订单号');
+            
+            // 用户昵称查询
+            $filter->like('user.username', '用户昵称');
             
             // 商品标题查询
             $filter->like('sku_name', '商品标题');
@@ -131,6 +136,7 @@ class JdOrdersController extends AdminController
         $show = new Show(Orders::findOrFail($id));
         
         $show->field('id', __('订单ID'));
+        $show->field('user.username', __('用户昵称'));
         $show->field('order_id', __('京东订单号'));
         $show->field('sku_name', __('商品标题'));
         $show->field('sku_id', __('SKU ID'));

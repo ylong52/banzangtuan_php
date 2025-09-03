@@ -116,9 +116,18 @@ class UserCommissionSettlementController extends AdminController
         
         // 获取用户统计数据
         $stats = $this->sumorder($userId);
-        
+        $userinfo = User::where("id",$userId)->select('id_card','bank_real_name','bank_card','bank_phone')->first();
+        if (!$userinfo) {
+            $userinfo = [];
+            $userinfo['id_card'] = '-';
+            $userinfo['bank_real_name'] = '-';
+            $userinfo['bank_card'] = '-';
+            $userinfo['bank_phone'] = '-';
+        } else {
+            $userinfo = $userinfo->toArray();
+        }
         // 渲染统计卡片视图
-        $html = view('admin.commission.stats_card', ['stats' => $stats])->render();
+        $html = view('admin.commission.stats_card', ['stats' => $stats,'userinfo'=>$userinfo])->render();
         
         return response()->json([
             'html' => $html
