@@ -28,24 +28,7 @@ class OrdersController extends AdminController
         // 预加载用户关系，避免N+1查询问题
         $grid->model()->with('user');
         
-        // 可以添加默认的查询条件
-        // 例如：只显示今天的订单
-        // $grid->model()->whereDate('created_at', date('Y-m-d'));
-        
-        // 例如：只显示有效的订单
-        // $grid->model()->whereIn('valid_code', [16, 17]);
-        $request = request();
-        //created_at[start]=2025-09-02&created_at[end]=2025-09-02
-
-        // if ($request->has('order_time')) {
-        //     $start = $request->get('order_time')['start'] . ' 00:00:00';
-        //     $end = $request->get('order_time')['end'] . ' 23:59:59';
-       
-        //     $grid->model()->whereRaw('order_time >= ? and order_time <= ?', [$start, $end]);
-        // }
- 
-        // 例如：按创建时间倒序排列
-        $grid->model()->orderBy('order_time', 'desc');
+        $grid->model()->whereNotNull('sub_union_id')->orderBy('order_time', 'desc'); //sub_union_id 显示不为空的
 
         // 添加统计信息
         $grid->header(function () {

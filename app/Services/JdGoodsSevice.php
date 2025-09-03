@@ -193,8 +193,9 @@ class JdGoodsSevice
                         'total_price' => round($order['skuNum'] * $order['price'], 2),
                         'sku_id' => $order['skuId'] ?? '',
                         'valid_code' => $order['validCode'] ?? 0,
-                        'image_url' => $goodsInfo['imageUrl'] ?? '', // 从goodsInfo中获取
+                        'image_url' => $this->formatImageUrl($goodsInfo['imageUrl']) ?? '', // 从goodsInfo中获取
                         'shop_name' => trim($goodsInfo['shopName']) ?? '', // 从goodsInfo中获取
+                        'actual_cos_price' => $order['actualCosPrice'] ?? 0,
                         'commission_rate' => $order['commissionRate'] ?? 0,
                         'estimate_cos_price' => $order['estimateCosPrice'] ?? 0,
                         'estimate_fee' => $order['estimateFee'] ?? 0,
@@ -232,7 +233,18 @@ class JdGoodsSevice
             return ['hasMore'=>$hasMore];
         }
     }
-    
+
+    private function formatImageUrl($imageUrl){
+        // 判断图片链接是否为https，如果不是则替换为https
+        if (strpos($imageUrl, 'https://') === 0) {
+            return $imageUrl;
+        } elseif (strpos($imageUrl, 'http://') === 0) {
+            return 'https://' . substr($imageUrl, 7);
+        } else {
+            return $imageUrl;
+        }
+    }
+
     private function getUserIdBySubUnionId($subUnionId) {
         $userId = User::where('sub_union_id', $subUnionId)->value('id');
         return $userId !== null ? $userId : null;

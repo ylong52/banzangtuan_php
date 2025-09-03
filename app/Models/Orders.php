@@ -37,6 +37,7 @@ class Orders extends Model
         'commission_rate',   // 佣金比例(%)，decimal(10,2)
         'estimate_cos_price',// 预估计佣金额，decimal(15,2)
         'estimate_fee',      // 推客的预估佣金，decimal(15,2)
+        'actual_cos_price',  // 实际计算佣金的金额。订单完成后，会将误扣除的运费券金额更正。如订单完成后发生退款，此金额会更新
         'order_time',        // 下单时间，datetime
         'modify_time',       // 更新时间，datetime
         'finish_time',       // 完成时间，datetime

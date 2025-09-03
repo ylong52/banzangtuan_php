@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Validator;
 class OrdersController extends ApiController
 {
     public function index(Request $request) {
-        $user_id = $request->input('user_id', 0);
+       
         $start_time = date('Y-m-d 00:00:00');
         $end_time = date('Y-m-d 23:59:59');
  
@@ -50,7 +50,6 @@ class OrdersController extends ApiController
         // 全部，待付款，已付款，已发货，已完成，已取消，已失效
         $wherevalid_code = [];
         if (!empty($request->valid_code_txt) && $request->valid_code_txt!='全部') {
- 
             if($request->valid_code_txt =='已付款') {
                 $wherevalid_code = ['valid_code'=>16];
             }elseif($request->valid_code_txt =='已发货') {
@@ -101,12 +100,11 @@ class OrdersController extends ApiController
             ->where('user_id', $this->user_id)
             ->where('order_time', '>=', $start_time)
             ->where('order_time', '<=', $end_time)            
-            ->where($wherevalid_code);
+            ->whereIn('valid_code',[16,17]);
         $statistics =[];
         $statistics['order_count']= (clone $query2)->count();  //
         $statistics['order_price']= (clone $query2)->sum('total_price');
-        $statistics['estimate_cos_price']= (clone $query2)->sum('estimate_cos_price');
-        $statistics['actual_cos_price']= (clone $query2)->sum('actual_cos_price');
+        $statistics['estimate_fee_count']= (clone $query2)->sum('estimate_fee'); 
         
         //遍历lists，取出status_txt
         foreach($lists as $key => &$val) {

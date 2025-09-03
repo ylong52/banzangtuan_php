@@ -38,14 +38,14 @@ class JdApiController extends ApiController
 
     //转链
     //必须下单后，才能查到订单
-    public function bysubunionid(Request $request)    
+    public function bysubunionid_old2(Request $request)    
     {
         
         $subUnionId = User::where('id',$this->user_id)->value('sub_union_id');
         if (!$subUnionId) {
             return response()->json(['status' => 'error','msg' => 'subUnionId参数错误!']);
         }
-        // $item_id = "【京东】https://3.cn/2od-pfdr「爱他美澳洲白金2段6罐 社群领券」点击链接直接打开";
+        //  $item_id = "【京东】https://3.cn/2od-pfdr「爱他美澳洲白金2段6罐 社群领券」点击链接直接打开";
         $item_id = $request->item_id;
         if (empty($item_id)) {  
             return response()->json(['status' => 'error','msg' => 'item_id参数错误!']);
@@ -117,6 +117,138 @@ class JdApiController extends ApiController
 
     }
 
+
+     //转链
+    //必须下单后，才能查到订单
+    public function bysubunionid(Request $request)    
+    {
+
+//          $item_id = "
+//          美的 MD12L5PROMAX 洗烘一体 12公斤aaaaaaa
+
+// 🔥7.3折⎜◉2946.4💰
+
+// 1⃣️PLUS独享：立减16
+// 2⃣️300券：https://y-03.cn/QpUrWYa2
+// 3⃣️补贴20%：支付立减
+// ──────────────
+// 🛍下单：https://u.jd.com/S11pPYH
+
+// 美的 MD12L5PROMAX 洗烘一体 12公斤b2
+
+// 🔥7.3折⎜◉2946.4💰
+
+// 1⃣️PLUS独享：立减16
+// 2⃣️300券：https://y-03.cn/QpUrWYa2
+// 3⃣️补贴20%：支付立减
+// ──────────────
+// 🛍下单 ：https://u.jd.com/SDgyFUx
+//          ";
+         
+//          $item_id = "
+//          美的 MD12L5PROMAX 洗烘一体 12公斤aaaaaaa
+
+// 🔥7.3折⎜◉2946.4💰
+
+// 1⃣️PLUS独享：立减16
+// 2⃣️300券：https://y-03.cn/QpUrWYa2
+// 3⃣️补贴20%：支付立减
+// ──────────────
+// 🛍下单：https://u.jd.com/S11pPYH
+ 
+//          ";
+        if (false==($item_id = $request->item_id)) {
+            return response()->json(['status' => 'error','msg' => 'item_id参数错误!']);
+        }
+         // 使用正则表达式提取"下单："后面的链接地址
+        $pattern = '/下单\s*：\s*(https?:\/\/[^\s]+)/u';
+        preg_match_all($pattern, $item_id, $matches);
+//  dump($matches);
+        if (empty($matches[1])) {
+            throw new \Exception("文案内容错误,无法分析!");
+        }
+        // dump($matches);
+        $tmpl = trim($item_id);
+        $pattern = '/(https?:\/\/[^\s]+)/u';
+        foreach($matches[1] as $k=>$match) {             
+            $tmpl  = str_replace(trim($match), '###'.($k+1).'###', $tmpl);           
+        }
+        $good_urls = $matches[1];
+        $bysubunionidRet = [];
+        foreach($good_urls as $goods_url) {
+            $bysubunionidRet[] = $this->__bysubunionid2($goods_url);
+        }
+ 
+        //如果是一条和多条返回的是一样的      
+        foreach($matches[1] as $k=>$match) {      
+            $tmpl = str_replace('###'.($k+1).'###', $bysubunionidRet[$k]['shortURL'], $tmpl);
+        }
+        if (count($bysubunionidRet) == 1) {
+            return response()->json(['status' => 'success','msg' => 'success','copy_txt'=>$tmpl,'commissionShare'=>$bysubunionidRet[0]['commissionShare'],'shortURL'=>$bysubunionidRet[0]['shortURL']]);
+        } else {
+            return response()->json(['status' => 'success','msg' => 'success','copy_txt'=>$tmpl,'commissionShare'=>'','shortURL'=>'']);
+        }
+  
+
+    }
+
+
+     //转链
+    //必须下单后，才能查到订单
+    private function __bysubunionid2($goods_url)    
+    {
+        //判断是否为合法的url链接，用正则式来判断
+        $pattern = '/(https?:\/\/[^\s]+)/u';
+        if (!preg_match($pattern, $goods_url)) {
+            throw new \Exception("转链取得的URL错误,无法分析!");
+        }
+        // $subUnionId = "";
+        $subUnionId = User::where('id',$this->user_id)->value('sub_union_id');
+        if (!$subUnionId) {
+            throw new \Exception("subUnionId参数错误!");
+        }
+        //  $item_id = "【京东】https://3.cn/2od-pfdr「爱他美澳洲白金2段6罐 社群领券」点击链接直接打开";
+        
+        $promotionBizParams = [
+            'promotionCodeReq' => [
+                'materialId' => $goods_url, // 替换为实际的物料ID
+                'subUnionId' => $subUnionId,
+                'sceneld' => 1
+            ]
+        ];
+        
+        $method =  "jd.union.open.promotion.bysubunionid.get";
+        $shortURL = '';
+        save_log(['promotionBizParams'=>$promotionBizParams,'method'=>$method],'bysubunionid');
+        $response = $this->callJdApi($method, $promotionBizParams);
+        if (empty($response['parsed']['jd_union_open_promotion_bysubunionid_get_responce']['getResult'])) {
+            throw new \Exception("操作失败!");
+        }
+        $getResultStr = $response['parsed']['jd_union_open_promotion_bysubunionid_get_responce']['getResult'];
+        $getResult = json_decode($getResultStr,true);
+
+        if ($getResult['code']!=200) {
+            throw new \Exception($getResult['message']);
+        }  
+        if (empty($getResult['data']['shortURL'])){
+            throw new \Exception("转链失败!");
+        } 
+        // dd("70 >>>",$getResult);;
+        $goodsInfo = $this->__goodsQuery($getResult['data']['shortURL']);
+        $shortURL = $getResult['data']['shortURL'];               
+        // $goods = [];                  
+        $commissionShare = "佣金".$goodsInfo['commissionInfo']['commissionShare']."%";
+            
+        if (!preg_match($pattern, $shortURL)) {
+            throw new \Exception("转链取得的URL错误!");
+        }
+        return ['shortURL'=>$shortURL,'commissionShare'=>$commissionShare];
+                     
+    }
+
+
+
+    
     function goodsQuery(Request $request)  {
         if (empty(($keyword = $request->keyword))) {
             return response()->json(['status' => 'error','msg' => "keyword参数不能为空"]);
