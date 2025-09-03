@@ -25,6 +25,9 @@ class OrdersController extends AdminController
         // 方法1: 直接在模型初始化时添加查询条件
         $grid = new Grid(new Orders());
         
+        // 预加载用户关系，避免N+1查询问题
+        $grid->model()->with('user');
+        
         // 可以添加默认的查询条件
         // 例如：只显示今天的订单
         // $grid->model()->whereDate('created_at', date('Y-m-d'));
@@ -118,7 +121,7 @@ class OrdersController extends AdminController
         });
 
         $grid->column('id', __('ID'))->sortable();        
-        $grid->column('username', __('用户昵称'));
+        $grid->column('user.username', __('用户昵称'))->limit(20);
         $grid->column('order_id', __('订单ID'));     
         
         // 显示商品标题
@@ -176,6 +179,16 @@ class OrdersController extends AdminController
             $filter->disableIdFilter();            
             // 商品标题查询
             $filter->like('sku_name', '商品标题');
+            
+            // 用户昵称查询 - 下拉选择（支持搜索）
+            $filter->equal('user_id', '用户昵称')->select(function() {
+                return \App\Models\User::whereNotNull('username')
+                    ->where('username', '!=', '')
+                    ->orderBy('username')
+                    ->limit(500) // 限制返回500个用户，避免页面卡顿
+                    ->pluck('username', 'id')
+                    ->toArray();
+            });
                                     
             // 订单号查询
             $filter->equal('order_id', '订单号');            
@@ -209,8 +222,9 @@ class OrdersController extends AdminController
 
     public function detail($id)
     {
-        $show = new Show(Orders::findOrFail($id));
+        $show = new Show(Orders::with('user')->findOrFail($id));
         $show->field('id', __('ID'));
+        $show->field('user.username', __('用户昵称'));
         $show->field('order_id', __('订单ID'));
         $show->field('sku_name', __('商品标题'));
         $show->field('sub_union_id', __('sub_union_id'));

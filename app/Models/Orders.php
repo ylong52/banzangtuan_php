@@ -227,4 +227,12 @@ class Orders extends Model
      * @var bool
      */
     public $timestamps = true;
+
+    /**
+     * 关联用户表
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
 }

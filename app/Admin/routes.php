@@ -55,7 +55,7 @@ Route::group([
     $router->resource('orders', 'OrdersController');
     
     //京东订单
-    $router->resource('jd-orders', 'JdOrdersController');
+    // $router->resource('jd-orders', 'JdOrdersController');
     
     //全局配置
     $router->resource('global-config', 'GlobalConfigController');

@@ -51,24 +51,9 @@ Route::get('/users', function (Request $request) {
         ->paginate(null, ['id', 'username as text']);
 });
 
-//jd转链接
-Route::match(['get', 'post'], '/jdshop/bysubunionid',[App\Http\Controllers\Api\JdApiController::class,'bysubunionid']);
-
-Route::match(['get', 'post'], '/jdshop/goodsQuery',[App\Http\Controllers\Api\JdApiController::class,'goodsQuery']);
 
 
-Route::match(['get', 'post'], '/jdshop/orderQuery',[App\Http\Controllers\Api\JdApiController::class,'orderQuery']);
 
-Route::match(['get', 'post'], '/order/index',[App\Http\Controllers\Api\OrdersController::class,'index']);
-
-Route::match(['get', 'post'], '/jdshop/goodslist',[App\Http\Controllers\Api\JdGoodsController::class,'index']);
-
-
-Route::match(['get', 'post'], '/income/index',[App\Http\Controllers\Api\IncomeController::class,'index']);
-
-Route::match(['get', 'post'], '/income/sumorder',[App\Http\Controllers\Api\IncomeController::class,'sumorder']);
-
-Route::match(['get', 'post'], '/income/orderlists',[App\Http\Controllers\Api\IncomeController::class,'orderlists']);
 
 //--- 路由组开始,需要验证token
 Route::middleware('auth:sanctum')->group(function () {
@@ -78,6 +63,24 @@ Route::middleware('auth:sanctum')->group(function () {
             'user' => auth()->user()
         ],200);
     });
+
+    Route::match(['get', 'post'], '/jdshop/goodsQuery',[App\Http\Controllers\Api\JdApiController::class,'goodsQuery']);
+
+    Route::match(['get', 'post'], '/jdshop/orderQuery',[App\Http\Controllers\Api\JdApiController::class,'orderQuery']);
+
+    Route::match(['get', 'post'], '/order/index',[App\Http\Controllers\Api\OrdersController::class,'index']);
+
+    Route::match(['get', 'post'], '/jdshop/goodslist',[App\Http\Controllers\Api\JdGoodsController::class,'index']);
+
+
+    Route::match(['get', 'post'], '/income/index',[App\Http\Controllers\Api\IncomeController::class,'index']);
+
+    Route::match(['get', 'post'], '/income/sumorder',[App\Http\Controllers\Api\IncomeController::class,'sumorder']);
+
+    Route::match(['get', 'post'], '/income/orderlists',[App\Http\Controllers\Api\IncomeController::class,'orderlists']);
+
+    //jd转链接
+    Route::match(['get', 'post'], '/jdshop/bysubunionid',[App\Http\Controllers\Api\JdApiController::class,'bysubunionid']);
 
     Route::get('/user/index',  [App\Http\Controllers\Api\UserController::class, 'index']);
 

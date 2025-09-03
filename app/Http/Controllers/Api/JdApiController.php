@@ -23,11 +23,15 @@ class JdApiController extends ApiController
 
     public function __construct()
     {        
+        parent::__construct();
         $this->appkey = "49307c59823cec6b2f0fb490f0d3c957";
         $this->appSecret = "fe774b73fb63417bad12286ad8f716f7";
         if ($this->user_status === 0) {
             //0表示禁用，1表示有效
             return response()->json(['status' => 'error','msg' => '用户已经禁用!']);
+        }
+        if (empty($this->user_id)) {
+            return response()->json(['status' => 'error','msg' => '用户未登录!'],400);
         }
         
     }
@@ -36,21 +40,39 @@ class JdApiController extends ApiController
     //必须下单后，才能查到订单
     public function bysubunionid(Request $request)    
     {
-        $item_id = "【京东】https://3.cn/2od-pfdr「爱他美澳洲白金2段6罐 社群领券」点击链接直接打开";
-        // $item_id = $request->item_id;
+        
+        $subUnionId = User::where('id',$this->user_id)->value('sub_union_id');
+        if (!$subUnionId) {
+            return response()->json(['status' => 'error','msg' => 'subUnionId参数错误!']);
+        }
+        // $item_id = "【京东】https://3.cn/2od-pfdr「爱他美澳洲白金2段6罐 社群领券」点击链接直接打开";
+        $item_id = $request->item_id;
         if (empty($item_id)) {  
             return response()->json(['status' => 'error','msg' => 'item_id参数错误!']);
         }
-        // 提取链接
-        preg_match('/(https?:\/\/[\w.-]+\.[\w]+\/[\w-]+)/', $item_id, $matches);
-        $url = isset($matches[0]) ? $matches[0] : '';        
+        $cleanText = preg_replace('/[^\p{Han}a-zA-Z0-9:\/\.\?-]/u', '', $item_id);
+
+        // 2. 去除多余空格和换行（将多个空格/换行替换为单个空格，避免排版干扰）
+        $cleanText = preg_replace('/\s+/', ' ', $cleanText);
+
+        // 3. （可选）去除首尾空格，让文本更整洁
+        $cleanText = trim($cleanText);
+
+        //清洗$item_id内留下
+        // 提取链接 - 获取最后一个HTTPS链接
+        $pattern = '/https?:\/\/[\w.-]+\.[a-zA-Z0-9]+\/[\w-]+/';
+        preg_match_all($pattern, $cleanText, $matches);
+        $url = "";        
+        // 获取最后一个匹配的链接
+        if (!empty($matches[0])) {
+            $url = end($matches[0]); // 取最后一个匹配结果
+        }
+        
         $url_template = str_replace($url, '###', $item_id);
         if (empty($url)) {  
             return response()->json(['status' => 'error','msg' => 'item_id参数错误!']);
         }
-        // dd("38 >>>",$item_id,$url_template,$url);
-        // $subUnionId = config('app.subUnionIdx').$this->user_id;
-        $subUnionId = config('app.subUnionIdx') ;
+ 
         $promotionBizParams = [
             'promotionCodeReq' => [
                 'materialId' => $url, // 替换为实际的物料ID
@@ -61,6 +83,7 @@ class JdApiController extends ApiController
         try {
             $method =  "jd.union.open.promotion.bysubunionid.get";
             $shortURL = '';
+            save_log(['promotionBizParams'=>$promotionBizParams,'method'=>$method],'bysubunionid');
             $response = $this->callJdApi($method, $promotionBizParams);
             if (empty($response['parsed']['jd_union_open_promotion_bysubunionid_get_responce']['getResult'])) {
                 throw new \Exception("操作失败!");

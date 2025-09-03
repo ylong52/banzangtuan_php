@@ -75,7 +75,7 @@ class OrdersController extends ApiController
         $pageSize = $request->input('pageSize', 20);
 
         $query = Orders::query()
-            // ->where('user_id', $user_id)
+            ->where('user_id', $this->user_id)
             ->where('order_time', '>=', $start_time)
             ->where('order_time', '<=', $end_time)
             ->where($whereorder_number)
@@ -97,11 +97,16 @@ class OrdersController extends ApiController
         ];
         
         // 如果需要获取总数，可以克隆另一个查询
+        $query2 = Orders::query()
+            ->where('user_id', $this->user_id)
+            ->where('order_time', '>=', $start_time)
+            ->where('order_time', '<=', $end_time)            
+            ->where($wherevalid_code);
         $statistics =[];
-        $statistics['order_count']= (clone $query)->count();  //
-        $statistics['order_price']= (clone $query)->sum('total_price');
-        $statistics['estimate_cos_price']= (clone $query)->sum('estimate_cos_price');
-        $statistics['actual_cos_price']= (clone $query)->sum('actual_cos_price');
+        $statistics['order_count']= (clone $query2)->count();  //
+        $statistics['order_price']= (clone $query2)->sum('total_price');
+        $statistics['estimate_cos_price']= (clone $query2)->sum('estimate_cos_price');
+        $statistics['actual_cos_price']= (clone $query2)->sum('actual_cos_price');
         
         //遍历lists，取出status_txt
         foreach($lists as $key => &$val) {

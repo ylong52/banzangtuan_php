@@ -91,6 +91,28 @@ $(document).ready(function() {
                     </div>
                 </div>
             </div>
+         
+            <div class="col-md-6">
+                <div class="info-box">
+                    <span class="info-box-icon bg-blue"><i class="fa fa-line-chart"></i></span>
+                    <div class="info-box-content">
+                        
+                        <span class="info-box-text" style="font-size: 14px; color: #0073aa; font-weight: bold; display: block; height: 30px; line-height: 30px;">
+                            身份证号&nbsp;&nbsp;&nbsp;{{ empty($userinfo) ? '-' : ($userinfo['id_card']) }}
+                        </span>
+                        <span class="info-box-text" style="font-size: 14px; color: #0073aa; font-weight: bold; display: block; height: 30px; line-height: 30px;">
+                            开户行姓名&nbsp;&nbsp;&nbsp;{{ empty($userinfo) ? '-' : ($userinfo['bank_real_name']) }}
+                        </span>
+                        <span class="info-box-text" style="font-size: 14px; color: #0073aa; font-weight: bold; display: block; height: 30px; line-height: 30px;">
+                            银行卡号&nbsp;&nbsp;&nbsp;{{ empty($userinfo) ? '-' : ($userinfo['bank_card']) }}
+                        </span>
+                        <span class="info-box-text" style="font-size: 14px; color: #0073aa; font-weight: bold; display: block; height: 30px; line-height: 30px;">
+                            银行预留电话&nbsp;&nbsp;&nbsp;{{ empty($userinfo) ? '-' : ($userinfo['bank_phone']) }}
+                        </span>
+                      
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

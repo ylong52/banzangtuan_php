@@ -8,6 +8,7 @@ use App\Models\GlobalConfig;
 use App\Models\DynamicProperty;
 use App\Models\RechargeRecord;
 use App\Models\Orders;
+use App\Models\User;
 /*
 微信
 支付宝
@@ -177,13 +178,15 @@ class JdGoodsSevice
                 foreach ($queryResult['data'] as $order) {
                     // 从goodsInfo中提取商品相关信息
                     $goodsInfo = $order['goodsInfo'] ?? [];
-                    
+                    if (empty($order['subUnionId'])) {
+                        continue;
+                    }
                     // 准备订单数据
                     $orderData = [
                         'id' => $order['id'] ?? '',
-                        'user_id' => null, // 暂时设为null，后续可以根据需要设置
+                        'user_id' => $this->getUserIdBySubUnionId($order['subUnionId']),  
                         'sub_union_id' => $order['subUnionId'] ?? '',
-                        'sku_name' => $order['skuName'] ?? '',
+                        'sku_name' => trim($order['skuName']) ?? '',
                         'order_id' => $order['orderId'] ?? '',
                         'sku_num' => $order['skuNum'] ?? 0,
                         'price' => $order['price'] ?? 0,
@@ -191,7 +194,7 @@ class JdGoodsSevice
                         'sku_id' => $order['skuId'] ?? '',
                         'valid_code' => $order['validCode'] ?? 0,
                         'image_url' => $goodsInfo['imageUrl'] ?? '', // 从goodsInfo中获取
-                        'shop_name' => $goodsInfo['shopName'] ?? '', // 从goodsInfo中获取
+                        'shop_name' => trim($goodsInfo['shopName']) ?? '', // 从goodsInfo中获取
                         'commission_rate' => $order['commissionRate'] ?? 0,
                         'estimate_cos_price' => $order['estimateCosPrice'] ?? 0,
                         'estimate_fee' => $order['estimateFee'] ?? 0,
@@ -226,10 +229,14 @@ class JdGoodsSevice
 
         } catch(\Exception $e) {
             echo "\n error:".$e->getMessage()."\n";
+            return ['hasMore'=>$hasMore];
         }
     }
     
-
+    private function getUserIdBySubUnionId($subUnionId) {
+        $userId = User::where('sub_union_id', $subUnionId)->value('id');
+        return $userId !== null ? $userId : null;
+    }
 
     function callJdApi($method, $bizParams, $accessToken = '') {
    

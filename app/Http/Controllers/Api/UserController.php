@@ -13,24 +13,6 @@ use Illuminate\Support\Facades\Validator;
 class UserController extends ApiController
 {
  
-    /**
-     * 获取用户信息
-     *
-     * @param int $id 用户ID
-     * @return \Illuminate\Http\JsonResponse
-     */   
-    // public function index(Request $request) {
-    //     $top_user_id = $request->input('top_user_id', 0);
-    //     //从登录的用户开始取出user_id
-    //     $list = User::where('is_deleted', 0)
-    //         ->select('id', 'name', 'teams_id')
-    //         ->when($top_user_id > 0, function($query) use ($top_user_id) {
-    //             return $query->orderByRaw("CASE WHEN id = ? THEN 0 ELSE 1 END", [$top_user_id]);
-    //         })
-    //         ->get();
-    //     return response()->json(['status' => 'success','msg' => '获取用户列表成功','list'=>$list]);
-    // }
-
     public function userinfo(Request $request)
     {   
 

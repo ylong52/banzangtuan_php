@@ -41,11 +41,11 @@ class JorderTimeSegmentsCommand extends Command
         $last_end_time = $segmentInfo->end_time;
         $last_start_time = $segmentInfo->start_time;
         $new_end_time = date('Y-m-d H:0:00', strtotime('+1 hour'));
-// dd($last_end_time,$new_end_time,$last_start_time);        
-        if ($last_end_time >= $new_end_time) {
-            //如果最后一条记录的end_time小于当前的小时，则将最后一条记录的end_time设置为当前的小时
-            return false;
-        }
+//  dd($last_end_time,$new_end_time,$last_start_time);        
+        // if ($last_end_time >= $new_end_time) {
+        //     //如果最后一条记录的end_time小于当前的小时，则将最后一条记录的end_time设置为当前的小时
+        //     return false;
+        // }
         // 将 $last_start_time 和 $end_time 按每小时分段，生成1小时一个的时段
         for ($i = strtotime($last_start_time); $i <= strtotime($new_end_time); $i += 3600) {
             // 取年月日+小时，格式为 2025-09-01 10:00:00
@@ -76,13 +76,13 @@ class JorderTimeSegmentsCommand extends Command
     }
 
     private function QueryJorderTimeSegments() {
+        echo "start QueryJorderTimeSegments >>> \n";
         $segments = JdOrderTimeSegment::where('status', 0)
         ->where('deleted_at', null)
         ->orderBy('start_time', 'desc')->get();
 
         if ($segments->count() == 0) {
-            JdOrderTimeSegment::where('status', 2)
-            ->where('deleted_at', null)
+            JdOrderTimeSegment::where('deleted_at', null)
             ->update(['status' => 0]);
             sleep(1);
             $segments = JdOrderTimeSegment::where('status', 0)

@@ -26,11 +26,12 @@ class ApiController extends BaseController
     protected $user_status = 1;
    
     
-    public function __construct(Request $request = null)
+    public function __construct()
     {
-
+        $request = Request();
         $this->request = is_null($request) ? app(Request::class) : $request;
         $user = Auth::guard('sanctum')->user();
+ 
         if ($user) {
             $this->user_id = $user->id;
             $this->user_status = $user->status;  //0表示禁用，1表示有效
