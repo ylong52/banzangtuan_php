@@ -95,9 +95,9 @@ Route::middleware('auth:sanctum')->group(function () {
     //推广记录
     Route::post('/promotion/list', [App\Http\Controllers\Api\PromotionController::class, 'index']);  #推广记录列表
  
-
+    Route::post('/jdgoods/share', [App\Http\Controllers\Api\JdGoodsController::class, 'share']);  #商品分享
 
 });
 
 
- 
+// Route::match(['get', 'post'], '/jdshop/bysubunionid',[App\Http\Controllers\Api\JdApiController::class,'bysubunionid']);

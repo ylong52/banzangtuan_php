@@ -70,9 +70,9 @@ $(document).ready(function() {
 </script>
 
 <div class="box box-primary">
-    <div class="box-header with-border">
+    <!-- <div class="box-header with-border">
         <h3 class="box-title"><i class="fa fa-bar-chart"></i> {{ date('Y-m', strtotime('last month')) }}佣金统计概览</h3>
-    </div>
+    </div> -->
     <div class="box-body">
         <div class="row" style="margin-top: 20px;">
             <div class="col-md-6">
@@ -80,13 +80,17 @@ $(document).ready(function() {
                     <span class="info-box-icon bg-blue"><i class="fa fa-line-chart"></i></span>
                     <div class="info-box-content">
                         <span class="info-box-text" style="font-size: 14px; color: #0073aa; font-weight: bold; display: block; height: 30px; line-height: 30px;">
-                            上月预估总佣金&nbsp;&nbsp;&nbsp;¥{{ number_format($stats['last_month_estimate_fee'], 2) }}
-                        </span>
+                            {{ isset($stats['last_month']) ? $stats['last_month'] : date('Y年m月', strtotime('last month')) }}预估总佣金&nbsp;&nbsp;&nbsp;¥{{ number_format(isset($stats['totalLastMonthEstimateCosPrice']) ? $stats['totalLastMonthEstimateCosPrice'] : 0, 2) }}
+                        </span>                         
                         <span class="info-box-text" style="font-size: 14px; color: #0073aa; font-weight: bold; display: block; height: 30px; line-height: 30px;">
-                            上月实际总佣金&nbsp;&nbsp;&nbsp;¥{{ number_format($stats['last_month_actual_fee'], 2) }}
+                            {{ isset($stats['last_month']) ? $stats['last_month'] : date('Y年m月', strtotime('last month')) }}订单总数&nbsp;&nbsp;&nbsp;{{ isset($stats['totalLastMonthEstimateCosOrders']) ? $stats['totalLastMonthEstimateCosOrders'] : 0 }}
                         </span>
+                        <!-- -->
                         <span class="info-box-text" style="font-size: 14px; color: #0073aa; font-weight: bold; display: block; height: 30px; line-height: 30px;">
-                            上月订单总数&nbsp;&nbsp;&nbsp;{{ $stats['last_month_order_count'] }}
+                            {{ isset($stats['this_month']) ? $stats['this_month'] : date('Y年m月') }}预估总佣金&nbsp;&nbsp;&nbsp;¥{{ number_format(isset($stats['totalThisMonthEstimateCosPrice']) ? $stats['totalThisMonthEstimateCosPrice'] : 0, 2) }}
+                        </span>                         
+                        <span class="info-box-text" style="font-size: 14px; color: #0073aa; font-weight: bold; display: block; height: 30px; line-height: 30px;">
+                            {{ isset($stats['this_month']) ? $stats['this_month'] : date('Y年m月') }}订单总数&nbsp;&nbsp;&nbsp;{{ isset($stats['totalThisMonthEstimateCosOrders']) ? $stats['totalThisMonthEstimateCosOrders'] : 0 }}
                         </span>
                     </div>
                 </div>
