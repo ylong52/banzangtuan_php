@@ -36,6 +36,9 @@ class ApiController extends BaseController
             $this->user_id = $user->id;
             $this->user_status = $user->status;  //0表示禁用，1表示有效
         }
+        if (!empty($user->status) && ($user->status == 0)) {
+            return response()->json(['status' => 'error','msg' => '用户已经禁用!']);
+        }
         // 控制器初始化
         $this->_initialize();
         

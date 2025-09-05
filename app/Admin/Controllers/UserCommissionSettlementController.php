@@ -75,34 +75,37 @@ class UserCommissionSettlementController extends AdminController
     public function sumorder($user_id=0)
     {
        
-        $sum_estimate_fee['last_month_estimate_fee'] =0;
-        $sum_estimate_fee['last_month_actual_fee'] =0;
-        $sum_estimate_fee['last_month_order_count'] =0;
-        if ($user_id==0) {            
-            return $sum_estimate_fee;
-        }
-        //上月
-        $sum_estimate_fee['last_month_estimate_fee'] = Orders::query()
+        //6.上月已经收货、应得佣金
+        $sum_estimate_fee['totalLastMonthEstimateCosPrice'] = Orders::query()
+        ->where('user_id', $user_id)
+            ->where('valid_code', 17)
             ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
+            ->sum('actual_fee');
+        $sum_estimate_fee['totalLastMonthEstimateCosOrders'] = Orders::query()
+        ->where('user_id', $user_id)
+        ->where('valid_code', 17)
+        ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
+        ->count();  
+        //7.本月已经收货、应得佣金
+        // 修改为本月的统计
+        $sum_estimate_fee['totalThisMonthEstimateCosPrice'] = Orders::query()
             ->where('user_id', $user_id)
-            ->whereIn('valid_code', [16, 17])
-            ->sum('estimate_fee');   //是预估佣金
-
-        $sum_estimate_fee['last_month_actual_fee'] = Orders::query()
-            ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
+            ->where('valid_code', 17)
+            ->whereBetween('order_time', [
+                date('Y-m-01 00:00:00'), 
+                date('Y-m-t 23:59:59')
+            ])
+            ->sum('actual_fee');
+        $sum_estimate_fee['totalThisMonthEstimateCosOrders'] = Orders::query()
             ->where('user_id', $user_id)
-            ->whereIn('valid_code', [16, 17])
-            ->sum('actual_fee'); //实际佣金（买家收货之后没有退款的）
-   
-
-        // 上月有多少单
-        $sum_estimate_fee['last_month_order_count'] = Orders::query()
-            ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
-            ->where('user_id', $user_id)
-            ->whereIn('valid_code', [16, 17])
-            ->count();   //订单数
-        
-     
+            ->where('valid_code', 17)
+            ->whereBetween('order_time', [
+                date('Y-m-01 00:00:00'), 
+                date('Y-m-t 23:59:59')
+            ])
+            ->count();
+        $sum_estimate_fee['last_month'] = date('Y年m月', strtotime('last month'));  //上月
+        $sum_estimate_fee['this_month'] = date('Y年m月');  //本月
         return $sum_estimate_fee;
     }
 
@@ -127,7 +130,7 @@ class UserCommissionSettlementController extends AdminController
             $userinfo = $userinfo->toArray();
         }
         // 渲染统计卡片视图
-        $html = view('admin.commission.stats_card', ['stats' => $stats,'userinfo'=>$userinfo])->render();
+        $html = view('admin.commission.stats_card', ['stats' => $stats, 'userinfo'=>$userinfo])->render();
         
         return response()->json([
             'html' => $html

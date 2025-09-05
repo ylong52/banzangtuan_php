@@ -28,10 +28,16 @@ class OrdersController extends AdminController
         // 预加载用户关系，避免N+1查询问题
         $grid->model()->with('user');
         
-        $grid->model()->whereNotNull('sub_union_id')->orderBy('order_time', 'desc'); //sub_union_id 显示不为空的
-
+        // $grid->model()->whereNotNull('sub_union_id')->orderBy('order_time', 'desc');  
+ 
         // 添加统计信息
         $grid->header(function () {
+            $whereUser = null;
+            $request = Request();
+            if ($request->has('user_id')) {
+                $whereUser = ['user_id'=>$request->user_id];
+            }
+
             // 今天的开始和结束时间
             $todayStart = date('Y-m-d 00:00:00');
             $todayEnd = date('Y-m-d 23:59:59');
@@ -42,62 +48,155 @@ class OrdersController extends AdminController
             
             // 最近7天的开始时间
             $sevenDaysAgo = date('Y-m-d 00:00:00', strtotime('-7 days'));
-            
+            // 最近30天的时间
+            $thirtyDaysAgo = date('Y-m-d 00:00:00', strtotime('-30 days'));
             // 总统计
             $totalEstimateCosPrice = Orders::query()
+                ->where($whereUser)
                 ->whereIn('valid_code', [16,17])
                 ->sum('estimate_fee');
-            $totalOrders = Orders::count();
-            
-            // 今天的统计
+            $totalOrders = Orders::query()
+                ->where($whereUser)
+                ->whereIn('valid_code', [16,17])
+                ->count();
+ 
+            //1今天的统计
             $todayEstimateCosPrice = Orders::query()
+                ->where($whereUser)
                 ->whereIn('valid_code', [16,17])
                 ->whereBetween('order_time', [$todayStart, $todayEnd])
                 ->sum('estimate_fee');
             $todayOrders = Orders::query()
+                ->where($whereUser)
+                ->whereIn('valid_code', [16,17])
                 ->whereBetween('order_time', [$todayStart, $todayEnd])
                 ->count();
             
-            // 昨天的统计
+            //2昨天的统计
             $yesterdayEstimateCosPrice = Orders::query()
+                ->where($whereUser)
                 ->whereIn('valid_code', [16,17])
                 ->whereBetween('order_time', [$yesterdayStart, $yesterdayEnd])
                 ->sum('estimate_fee');
             $yesterdayOrders = Orders::query()
+                ->where($whereUser)
+                ->whereIn('valid_code', [16,17])
                 ->whereBetween('order_time', [$yesterdayStart, $yesterdayEnd])
                 ->count();
             
-            // 最近7天的统计
+            //3最近7天的统计
             $sevenDaysEstimateCosPrice = Orders::query()
+                ->where($whereUser)
                 ->whereIn('valid_code', [16,17])
                 ->whereBetween('order_time', [$sevenDaysAgo, $todayEnd])
                 ->sum('estimate_fee');
             $sevenDaysOrders = Orders::query()
+                ->where($whereUser)
+                ->whereIn('valid_code', [16,17])
                 ->whereBetween('order_time', [$sevenDaysAgo, $todayEnd])
                 ->count();
             
+            //4最近30天的统计
+            $thirtyDaysEstimateCosPrice = Orders::query()
+                ->where($whereUser)
+                ->whereIn('valid_code', [16,17])
+                ->whereBetween('order_time', [$thirtyDaysAgo, $todayEnd])
+                ->sum('estimate_fee');
+            $thirtyDaysOrders = Orders::query()
+                ->where($whereUser)
+                ->whereIn('valid_code', [16,17])
+                ->whereBetween('order_time', [$thirtyDaysAgo, $todayEnd])
+                ->count();
+
+            //5.actual_fee 全部订单已经收货、待结算的佣金
+            $totalAllEstimateCosPrice = Orders::query()
+                ->where($whereUser)
+                ->where('valid_code', 17)
+                ->sum('actual_fee');
+            $totalAllEstimateCosOrders = Orders::query()
+                ->where($whereUser)
+                ->where('valid_code', 17)
+                ->count();
+
+            //6.上月已经收货、应得佣金
+            $totalLastMonthEstimateCosPrice = Orders::query()
+                ->where($whereUser)
+                ->where('valid_code', 17)
+                ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
+                ->sum('actual_fee');
+            $totalLastMonthEstimateCosOrders = Orders::query()
+                ->where($whereUser)
+                ->where('valid_code', 17)
+                ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
+                ->count();
+
+            //7.本月已经收货、应得佣金
+            // 修改为本月的统计
+            $totalThisMonthEstimateCosPrice = Orders::query()
+                ->where($whereUser)
+                ->where('valid_code', 17)
+                ->whereBetween('order_time', [
+                    date('Y-m-01 00:00:00'), 
+                    date('Y-m-t 23:59:59')
+                ])
+                ->sum('actual_fee');
+            $totalThisMonthEstimateCosOrders = Orders::query()
+                ->where($whereUser)
+                ->where('valid_code', 17)
+                ->whereBetween('order_time', [
+                    date('Y-m-01 00:00:00'), 
+                    date('Y-m-t 23:59:59')
+                ])
+                ->count();
+
+            // 先定义本月和上月变量
+            $lastMonth = date('Y年m月', strtotime('last month'));
+            $thisMonth = date('Y年m月');
+
             return '<div class="alert alert-info">
                 <h4><i class="fa fa-info-circle"></i> 统计信息</h4>
                 <div class="row">
-                    <div class="col-md-3">
-                        <h5><i class="fa fa-calendar"></i> 总体统计</h5>
+                    <div class="col-md-2">
+                        <h5><i class="fa fa-calendar"></i> 1.全部统计</h5>
                         <p><strong>总预估计有效的佣金额：</strong> ¥' . number_format($totalEstimateCosPrice, 2) . '</p>
                         <p><strong>订单总数：</strong> ' . number_format($totalOrders) . ' 笔</p>
                     </div>
-                    <div class="col-md-3">
-                        <h5><i class="fa fa-calendar-day"></i> 今日统计</h5>
+                    <div class="col-md-2">
+                        <h5><i class="fa fa-calendar-day"></i> 2.今日统计</h5>
                         <p><strong>今日预估计有效的佣金额：</strong> ¥' . number_format($todayEstimateCosPrice, 2) . '</p>
                         <p><strong>今日订单数：</strong> ' . number_format($todayOrders) . ' 笔</p>
                     </div>
-                    <div class="col-md-3">
-                        <h5><i class="fa fa-calendar-minus"></i> 昨日统计</h5>
+                    <div class="col-md-2">
+                        <h5><i class="fa fa-calendar-minus"></i> 3.昨日统计</h5>
                         <p><strong>昨日预估计有效的佣金额：</strong> ¥' . number_format($yesterdayEstimateCosPrice, 2) . '</p>
                         <p><strong>昨日订单数：</strong> ' . number_format($yesterdayOrders) . ' 笔</p>
                     </div>
-                    <div class="col-md-3">
-                        <h5><i class="fa fa-calendar-week"></i> 最近7天统计</h5>
+                    <div class="col-md-2">
+                        <h5><i class="fa fa-calendar-week"></i> 4.最近7天统计</h5>
                         <p><strong>7天预估计有效的佣金额：</strong> ¥' . number_format($sevenDaysEstimateCosPrice, 2) . '</p>
                         <p><strong>7天订单数：</strong> ' . number_format($sevenDaysOrders) . ' 笔</p>
+                    </div>
+                    <div class="col-md-2">
+                        <h5><i class="fa fa-calendar-plus"></i> 5.最近30天统计</h5>
+                        <p><strong>30天预估计有效的佣金额：</strong> ¥' . number_format($thirtyDaysEstimateCosPrice, 2) . '</p>
+                        <p><strong>30天订单数：</strong> ' . number_format($thirtyDaysOrders) . ' 笔</p>
+                    </div>
+                </div>
+                <div class="row" style="border-top: 1px solid #e0e0e0; padding-top: 10px;">
+                    <div class="col-md-2">
+                        <h5><i class="fa fa-calendar"></i> 6.全部订单</h5>
+                        <p><strong>全部订单已经收货、待结算的佣金:</strong> ¥' . number_format($totalAllEstimateCosPrice, 2) . '</p>
+                        <p><strong>订单总数：</strong> ' . number_format($totalAllEstimateCosOrders) . ' 笔</p>
+                    </div>
+                    <div class="col-md-2">
+                        <h5><i class="fa fa-calendar"></i> 7.上月(' . $lastMonth . ')订单</h5>
+                        <p><strong>本月预估结算佣金:</strong> ¥' . number_format($totalLastMonthEstimateCosPrice, 2) . '</p>
+                        <p><strong>订单总数：</strong> ' . number_format($totalLastMonthEstimateCosOrders) . ' 笔</p>
+                    </div>
+                    <div class="col-md-2">
+                        <h5><i class="fa fa-calendar"></i> 8.本月(' . $thisMonth . ')订单</h5>
+                        <p><strong>下月预估结算佣金:</strong> ¥' . number_format($totalThisMonthEstimateCosPrice, 2) . '</p>
+                        <p><strong>订单总数：</strong> ' . number_format($totalThisMonthEstimateCosOrders) . ' 笔</p>
                     </div>
                 </div>
             </div>';
@@ -137,19 +236,19 @@ class OrdersController extends AdminController
         $grid->column('valid_code', __('订单状态'))->display(function ($value) {
             switch ($value) {
                 case -1:
-                    return '<span class="label label-info">未知</span>';
+                    return '<span class="label label-info">-1.未知</span>';
                 case 3:
-                    return '<span class="label label-default">无效-取消</span>';
+                    return '<span class="label label-default">3.无效-取消</span>';
                 case 15:
-                    return '<span class="label label-warning">待付款</span>';
+                    return '<span class="label label-warning">15.待付款</span>';
                 case 16:
-                    return '<span class="label label-success">已付款</span>';
+                    return '<span class="label label-success">16.已付款</span>';
                 case 17:
-                    return '<span class="label label-primary">已完成</span>';
+                    return '<span class="label label-primary">17.已完成</span>';
                 case 24:
-                    return '<span class="label label-info">已付定金</span>';
+                    return '<span class="label label-info">24.已付定金</span>';
                 default:
-                    return '<span class="label label-default">未知</span>';
+                    return '<span class="label label-default">0.未知</span>';
             }
         });
  
@@ -177,12 +276,12 @@ class OrdersController extends AdminController
             $filter->equal('order_id', '订单号');            
             // 订单状态查询
             $filter->equal('valid_code', '订单状态')->select([
-                -1 => '未知',
-                3 => '无效-取消',
-                15 => '待付款',
-                16 => '已付款',
-                17 => '已完成',
-                24 => '已付定金'
+                -1 => '-1.未知',
+                3 => '3.无效-取消',
+                15 => '15.待付款',
+                16 => '16.已付款',
+                17 => '17.已完成',
+                24 => '24.已付定金'
             ]);            
             // 时间区间查询
             $filter->between('order_time', '下单时间')->datetime();

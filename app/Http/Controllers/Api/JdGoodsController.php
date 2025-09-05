@@ -17,6 +17,7 @@ use App\Http\Controllers\ApiController;
 use App\Services\JdUnionClient;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx\Rels;
 use App\Models\Goods;
+use App\Services\JdGoodsSevice;
 
 class JdGoodsController extends ApiController
 {
@@ -62,4 +63,31 @@ class JdGoodsController extends ApiController
         return response()->json(['status' => 'success','msg' => 'success','data' => $goods]);
     }
 
+    public function share(Request $request) {
+        $product= $request->input('product');
+        
+        $subUnionId = User::where('id',$this->user_id)->value('sub_union_id');
+        if (!$subUnionId) {
+            return response()->json(['status' => 'error','msg' => 'subUnionId参数错误!']);
+        }
+        
+        try { 
+            $jdGoodsSevice = new JdGoodsSevice();       
+            $goodsInfo = $jdGoodsSevice->bysubunionid($product['keyword'],$subUnionId);
+            $newShortURL = $goodsInfo['shortURL'];
+            $pattern = '/下单\s*：\s*(https?:\/\/[^\s]+)/u';
+            preg_match_all($pattern, $product['share_copywriting'], $matches);
+    //  dump($matches);
+            if (empty($matches[1])) {
+                throw new \Exception("文案内容错误,无法分析!");
+            }
+            //将$matches[1]替换为$newShortURL
+            $newShareCopywriting = str_replace($matches[1], $newShortURL, $product['share_copywriting']);
+        
+            return response()->json(['status' => 'success','msg' => 'success','share_copywriting' => $newShareCopywriting]);
+        }catch(\Exception $e) {
+            return response()->json(['status' => 'error','msg' => $e->getMessage()]);
+        }
+
+    }
 }

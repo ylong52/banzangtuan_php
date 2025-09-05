@@ -40,22 +40,26 @@ class JdGoodsSevice
 
     //转链
     //必须下单后，才能查到订单
-    public function bysubunionid($keyword)    
+    public function bysubunionid($keyword,$subUnionId)    
     {
-         $keyword = "【京东】https://3.cn/2od-pfdr「爱他美澳洲白金2段6罐 社群领券」点击链接直接打开";
-        // $item_id = $request->item_id;
+        
         if (empty($keyword)) {  
             throw new \Exception('item_id参数错误!');
         }
+        if (empty($subUnionId)) {
+            throw new \Exception('subUnionId参数错误!');
+        }
+        $pattern = '/(https?:\/\/[^\s]+)/u';
+        if (!preg_match($pattern, $keyword)) {
+            throw new \Exception("转链取得的URL错误,无法分析!");
+        }
+
         preg_match('/(https?:\/\/[\w.-]+\.[\w]+\/[\w-]+(?:「[^」]*」)?)/', $keyword, $matches);
-        $url = isset($matches[0]) ? $matches[0] : '';  
-        
+        $url = isset($matches[0]) ? $matches[0] : '';          
         if (empty($url)) {  
             throw new \Exception('item_id参数错误!');
         }
-        // dd("38 >>>",$item_id,$url_template,$url);
-        // $subUnionId = config('app.subUnionIdx').$this->user_id;
-        $subUnionId = config('app.subUnionIdx') ;
+ 
         $promotionBizParams = [
             'promotionCodeReq' => [
                 'materialId' => $url, // 替换为实际的物料ID
@@ -63,41 +67,29 @@ class JdGoodsSevice
                 'sceneld' => 1
             ]
         ];
-        try {
-            $method =  "jd.union.open.promotion.bysubunionid.get";
-            $shortURL = '';
-            $response = $this->callJdApi($method, $promotionBizParams);
-            if (empty($response['parsed']['jd_union_open_promotion_bysubunionid_get_responce']['getResult'])) {
-                throw new \Exception("操作失败!");
-            }
-            $getResultStr = $response['parsed']['jd_union_open_promotion_bysubunionid_get_responce']['getResult'];
-            $getResult = json_decode($getResultStr,true);
-
-            if ($getResult['code']!=200) {
-                throw new \Exception($getResult['message']);
-            }  
-            if (empty($getResult['data']['shortURL'])){
-                throw new \Exception("转链失败!");
-            } 
-            // dd("70 >>>",$getResult);;
-            $goodsInfo = $this->__goodsQuery($getResult['data']['shortURL']);
-            $shortURL = $getResult['data']['shortURL'];               
-//             $goods = [];        
-// // dd("74<<",$goodsInfo);             
-//             $goods['commissionShare'] = "佣金".$goodsInfo['commissionInfo']['commissionShare']."%";
-             
-//             $new_item_id = str_replace('###', $shortURL, $url_template). " 或者复制文案打开京东" ;
-//             preg_match('/(https?:\/\/[\w.-]+\.[\w]+\/[\w-]+(?:「[^」]*」)?)/', $new_item_id, $matches);
-//             $copy_txt = isset($matches[1]) ? $matches[1] : '';
-
-            return response()->json(['status' => 'success','msg' => 'success','shortURL'=>$shortURL,'goods'=>$goodsInfo]);
- 
-            
-        } catch (\Exception $e) {            
-            return response()->json(['status' => 'error','msg' => $e->getMessage()]);
+        
+        $method =  "jd.union.open.promotion.bysubunionid.get";
+        $shortURL = '';
+        $response = $this->callJdApi($method, $promotionBizParams);
+        if (empty($response['parsed']['jd_union_open_promotion_bysubunionid_get_responce']['getResult'])) {
+            throw new \Exception("操作失败!");
         }
+        $getResultStr = $response['parsed']['jd_union_open_promotion_bysubunionid_get_responce']['getResult'];
+        $getResult = json_decode($getResultStr,true);
 
+        if ($getResult['code']!=200) {
+            throw new \Exception($getResult['message']);
+        }  
+        if (empty($getResult['data']['shortURL'])){
+            throw new \Exception("转链失败!");
+        } 
+        // dd("70 >>>",$getResult);;
+        // $goodsInfo = $this->__goodsQuery($getResult['data']['shortURL']);
+        $shortURL = $getResult['data']['shortURL'];               
+        return ['shortURL'=>$shortURL,'data'=>$getResult['data']];
+         
     }
+
 
     function __goodsQuery($keyword)  {
         // $keyword = "【京东】https://u.jd.com/YO58R3K「爱他美澳洲白金2段6罐 社群领券」点击链接直接打开";
@@ -193,6 +185,7 @@ class JdGoodsSevice
                         'total_price' => round($order['skuNum'] * $order['price'], 2),
                         'sku_id' => $order['skuId'] ?? '',
                         'valid_code' => $order['validCode'] ?? 0,
+                        'trace_type' => $order['traceType'] ?? 0,
                         'image_url' => $this->formatImageUrl($goodsInfo['imageUrl']) ?? '', // 从goodsInfo中获取
                         'shop_name' => trim($goodsInfo['shopName']) ?? '', // 从goodsInfo中获取
                         'actual_cos_price' => $order['actualCosPrice'] ?? 0,

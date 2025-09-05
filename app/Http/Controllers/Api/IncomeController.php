@@ -23,7 +23,7 @@ class IncomeController extends ApiController
         $pageSize = $request->input('pageSize', 20);
         $pageSize = 4;
         $query = UserCommissionSettlement::query()
-            // ->where('user_id', $request->input('user_id'))
+            ->where('user_id', $request->input('user_id'))
             ->where('is_paid', 1);
 
         $paginatedResult = (clone $query)->orderBy('created_at', 'desc')->paginate($pageSize, ['*'], 'page', $page);
@@ -149,17 +149,38 @@ class IncomeController extends ApiController
     public function sumorder(Request $request)
     {
         //上月
-        $sum_estimate_fee['last_month'] = Orders::query()
-            ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
+        // $sum_estimate_fee['last_month'] = Orders::query()
+        //     ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
+        //     // ->where('user_id', $this->user_id)
+        //     ->whereIn('valid_code', [16, 17])
+        //     ->sum('estimate_fee');
+        // //本月
+        // $sum_estimate_fee['this_month'] = Orders::query()
+        //     ->whereBetween('order_time', [date('Y-m-01 00:00:00'), date('Y-m-t 23:59:59')])
+        //     // ->where('user_id', $this->user_id)
+        //     ->whereIn('valid_code', [16, 17])
+        //     ->sum('estimate_fee');
+
+
+            // 上月已经收货、应得佣金
+            $sum_estimate_fee['this_month'] = Orders::query()
             ->where('user_id', $this->user_id)
-            ->whereIn('valid_code', [16, 17])
-            ->sum('estimate_fee');
-        //本月
-        $sum_estimate_fee['this_month'] = Orders::query()
-            ->whereBetween('order_time', [date('Y-m-01 00:00:00'), date('Y-m-t 23:59:59')])
-            ->where('user_id', $this->user_id)
-            ->whereIn('valid_code', [16, 17])
-            ->sum('estimate_fee');
+                ->where('valid_code', 17)
+                ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
+                ->sum('actual_fee');
+           
+
+            // 本月已经收货、应得佣金 
+            // 修改为本月的统计
+           $sum_estimate_fee['last_month'] = Orders::query()
+           ->where('user_id', $this->user_id)
+                ->where('valid_code', 17)
+                ->whereBetween('order_time', [
+                    date('Y-m-01 00:00:00'), 
+                    date('Y-m-t 23:59:59')
+                ])
+                ->sum('actual_fee');
+        
 
         return response()->json([
             'status' => 'success',

@@ -42,6 +42,7 @@ class Orders extends Model
         'modify_time',       // 更新时间，datetime
         'finish_time',       // 完成时间，datetime
         'updated_at',        // 修改时间，datetime
+        'trace_type',        // 店铺类型：2同店，3跨店
     ];
 
     /**

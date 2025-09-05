@@ -106,9 +106,9 @@ class UserController extends ApiController
             // 只取第一个错误信息
             $firstError = collect($validator->errors()->all())->first();
             return response()->json([
-                'code' => 422,
+                'status' => 'error', 
                 'msg' => $firstError
-            ], 422);
+            ], 200);
         }
         $data = $validator->validated();
 
