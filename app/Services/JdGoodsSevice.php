@@ -188,10 +188,10 @@ class JdGoodsSevice
                         'trace_type' => $order['traceType'] ?? 0,
                         'image_url' => $this->formatImageUrl($goodsInfo['imageUrl']) ?? '', // 从goodsInfo中获取
                         'shop_name' => trim($goodsInfo['shopName']) ?? '', // 从goodsInfo中获取
-                        'actual_cos_price' => $order['actualCosPrice'] ?? 0,
+                        'actual_cos_price' => $order['actualCosPrice']?($order['actualCosPrice']*0.9): 0,
                         'commission_rate' => $order['commissionRate'] ?? 0,
                         'estimate_cos_price' => $order['estimateCosPrice'] ?? 0,
-                        'estimate_fee' => $order['estimateFee'] ?? 0,
+                        'estimate_fee' => $order['estimateFee']?($order['estimateFee']*0.9):0,    //折扣0.9
                         'order_time' => !empty($order['orderTime']) ? $order['orderTime'] : null,
                         'modify_time' => !empty($order['modifyTime']) ? $order['modifyTime'] : null,
                         'finish_time' => !empty($order['finishTime']) ? $order['finishTime'] : null,

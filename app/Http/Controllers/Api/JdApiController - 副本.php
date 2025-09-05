@@ -128,9 +128,7 @@ class JdApiController extends ApiController
     public function bysubunionid(Request $request)    
     {
 
-if (0) {        
- //================ 第一种情况==================          
-        $raw_item_url_txt = "
+         $raw_item_url_txt = "
          美的 MD12L5PROMAX 洗烘一体 12公斤aaaaaaa
 
 🔥7.3折⎜◉2946.4💰
@@ -151,158 +149,98 @@ if (0) {
 ──────────────
 🛍下单 ：https://u.jd.com/SDgyFUx
          ";
-        
-// $raw_item_url_txt = "
-//          美的 MD12L5PROMAX 洗烘一体 12公斤aaaaaaa
+         
+//           $raw_item_url_txt = "
+// 雷鸟 65S595C Pro 电视 65英寸
 
-// 🔥7.3折⎜◉2946.4💰
+// 🔥7.4折⎜◉3039.2💰
 
-// 1⃣️PLUS独享：立减16
-// 2⃣️300券：https://y-03.cn/QpUrWYa2
-// 3⃣️补贴20%：支付立减
+// 1⃣️300券：https://u.jd.com/SaSF4E2
+// 2⃣️补贴20%：部分地区可用
 // ──────────────
-// 🛍下单：https://u.jd.com/S11pPYH
-// ";
-
-//================ 第2种情况  ==================  
-// $raw_item_url_txt = "
-// 美的 MD12L5PROMAX 洗烘一体 12公斤aaaaaaa
-
-// 🔥7.3折⎜◉2946.4💰
-
-// 1⃣️PLUS独享：立减16
+// 🛍下单：https://u.jd.com/S6PCZyD
  
-// 3⃣️补贴20%：支付立减
-// ──────────────
-// 🛍下单：https://u.jd.com/S11pPYH
+//           ";
 
-// ";
-
-//================ 第3种情况  ==================  
 // $raw_item_url_txt = "
-// https://u.jd.com/S11pPYH
+// 飞利浦 EP3341咖啡机
+
+// 🔥8.8折⎜◉3085💰
+
+// 1⃣️PLUS独享：立减14
+// 2⃣️400券：https://u.jd.com/SOP3gQu
+// ──────────────
+// 🛍下单：https://u.jd.com/S1PHo0g
 
 // ";
-
-}
-
-        if (empty($request->item_id)) {
-            return response()->json(['status' => 'error','msg' => 'item_id参数错误!']);
-        }
-        
-        $raw_item_url_txt = $request->item_id;
+        // if (false==($raw_item_url_txt = $request->item_id)) {
+        //     return response()->json(['status' => 'error','msg' => 'item_id参数错误!']);
+        // }
         try {
-            $pattern1 = '/券[^\\n]*?https?:\/\/[^\s]+/u';
-            $pattern2 = '/下单[^\\n]*?https?:\/\/[^\s]+/u';       
-            if (preg_match($pattern1, $raw_item_url_txt) || preg_match($pattern2, $raw_item_url_txt)) {
-                //================ 第一种情况完成 ==================          
-                // 同时包含两个关键词时，执行这里的逻辑                
-                preg_match_all($pattern1, $raw_item_url_txt, $matches1);
-                preg_match_all($pattern2, $raw_item_url_txt, $matches2);      
+            $item_url_txt = $this->processItemUrlTxt($raw_item_url_txt);
+          
+            // 使用正则表达式提取"下单："后面的链接地址
+            $pattern = '/(https?:\/\/[^\s]+)/u';
+            // $pattern = '/下单\s*：\s*(https?:\/\/[^\s]+)/u';
+            preg_match_all($pattern, $item_url_txt, $matches);
     
-                $good_urls = [];
-                if (!empty($matches1[0])) {
-                    $good_urls = array_merge($good_urls, $matches1[0]);
-                }
-                if (!empty($matches2[0])) {
-                    $good_urls = array_merge($good_urls, $matches2[0]);
-                }
+            if (empty($matches[1])) {
+                throw new \Exception("文案内容错误,无法分析!");
+            }
+        
+            $tmpl = trim($item_url_txt);
+            // $pattern = '/(https?:\/\/[^\s]+)/u';
+            foreach($matches[1] as $k=>$match) {             
+                $tmpl  = str_replace(trim($match), '###'.($k+1).'###', $tmpl);           
+            }
+            $good_urls = $matches[1];
+            $bysubunionidRet = [];
+   dump("179>>>",$item_url_txt,$good_urls);
+            foreach($good_urls as $goods_url) {
+            
+                $bysubunionidRet[] = $this->__bysubunionid2($item_url_txt,$goods_url);
                 
-                $bysubunionidRet = [];
-                foreach($good_urls as $goods_url) {
-                    //转链接
-                    $bysubunionidRet[] = $this->__bysubunionid2($goods_url);            
-                }
-                // dump("167>>>",$bysubunionidRet);                
-                //将旧链接换成新链接
-                $new_item_txt = $raw_item_url_txt;
-                // 通过rawURL去重
-                $uniqueBysubunionidRet = [];
-                $uniqueRawURLs = [];
+            }
+    
+            //      
+            foreach($matches[1] as $k=>$match) {      
+                $tmpl = str_replace('###'.($k+1).'###', $bysubunionidRet[$k]['shortURL'], $tmpl);
+            }
 
-                foreach($bysubunionidRet as $item) {
-                    if (!in_array($item['rawURL'], $uniqueRawURLs)) {
-                        $uniqueRawURLs[] = $item['rawURL'];
-                        $uniqueBysubunionidRet[] = $item;
+            if (strpos($item_url_txt, '券') !== false && strpos($item_url_txt, '下单') !== false) {
+                //卷和下单，汉字都存在的情况
+                $commissionShare = ''; 
+                foreach($bysubunionidRet as $r1) {
+                    if (!empty($r1['commissionShare'])) {
+                        $commissionShare = $r1['commissionShare'];
                     }
+                                      
                 }
-                $bysubunionidRet2 = $uniqueBysubunionidRet;
-                foreach($bysubunionidRet2 as $k1=>$r1) {
-                    $new_item_txt = str_replace(                    
-                        $r1['rawURL'],
-                        $r1['shortURL'],
-                        $new_item_txt
-                    );
-                }
-                // 判断 $new_item_txt 中有几个“订单”单词
-                $orderCount = preg_match_all('/下单/u', $new_item_txt, $orderMatches);
-                if ($orderCount > 1 ) {
-                    //多个订单
-                    $k = 0;$v=0;
-                    foreach($bysubunionidRet  as $r1) {
-                        if ($r1['errorTag']==false) {
-                            $k ++;
-                        } else {
-                            $v ++;
-                        }
-                    }
-                    return response()->json(['status' => 'success','msg' => 'success','copy_txt'=>$new_item_txt,'commissionShare'=>"",'shortURL'=>'','successmsg'=>"转换链接成功{$v}条，失败{$k}条","bysubunionidRet"=>$bysubunionidRet]);              
-                } else {                  
-                    $commissionShare = "";
-                    $shortURL = "";
-                    foreach($bysubunionidRet  as $r1) {
+                $shortURL = $bysubunionidRet[1]['shortURL'];
+   dump("190>>>",$tmpl,$bysubunionidRet,$shortURL);                
+                return response()->json(['status' => 'success','msg' => 'success','copy_txt'=>$tmpl,'commissionShare'=>$commissionShare,'shortURL'=>$shortURL]);
+            } else {
+                dd("190>>>",$item_url_txt);            
+                $orderHzCount = substr_count($item_url_txt, '下单');
+                if ($orderHzCount == 1) {
+                    //只有一个文本显示是‘下单’的链接
+                    $commissionShare = ''; 
+                    foreach($bysubunionidRet as $r1) {
                         if (!empty($r1['commissionShare'])) {
                             $commissionShare = $r1['commissionShare'];
                         }
-                        if ($r1['errorTag']==false && $r1['isOrderTag']==true) {
-                            $shortURL = $r1['viewDetailUrl'];
-                        }
+                                        
                     }
-                    return response()->json(['status' => 'success','msg' => 'success','copy_txt'=>$new_item_txt,'commissionShare'=>$commissionShare,'shortURL'=>$shortURL,"successmsg"=>"","bysubunionidRet"=>$bysubunionidRet]);
-                }
-
-
-                // dump("191>>>",$bysubunionidRet,$new_item_txt);
-                //================ 第一种情况完成 ==================            
-            } else  {
-                $pattern = '/(https?:\/\/[^\s]+)/u';
-            
-                preg_match_all($pattern, $raw_item_url_txt, $matches);
-                if (empty($matches[1])) {
-                    throw new \Exception("文案内容错误,无法分析!");
-                }
-                foreach($matches[1] as $goods_url) { 
-                    if (strpos($goods_url, '下单') !== false) {
-                    //含有下单
-                    $bysubunionidRet[] = $this->__bysubunionid2($goods_url);                
-                    } else {
-                        $bysubunionidRet[] = $this->__bysubunionid2('下单'.$goods_url);                
-                    }                          
-                }    
-                if (count($bysubunionidRet)>1) {
-                    //多个订单
-                    $k = 0;$v=0;
-                    foreach($bysubunionidRet  as $r1) {
-                        if ($r1['errorTag']==false) {
-                            $k ++;
-                        }else {
-                            $v ++;
-                        }
-                        $new_item_txt[] = $r1['shortURL'];
+                    $shortURL = $bysubunionidRet[0]['shortURL'];
+    
+                    if ( $item_url_txt != $raw_item_url_txt) {
+                        //根据$item_url_txt = preg_replace($pattern, '下单：$1', $item_url_txt);返过来，去掉下单
+                        $shortURL = preg_replace('/下单：/', '', $shortURL);
+                        $tmpl = preg_replace('/下单：/', '', $tmpl);
                     }
-                    $new_item_txt = implode('<br>',$new_item_txt);
-                    return response()->json(['status' => 'success', 'copy_txt'=>$new_item_txt,'commissionShare'=>"",'shortURL'=>'','successmsg'=>"转换链接成功{$v}条，失败{$k}条","bysubunionidRet"=>$bysubunionidRet]);
-                } else {
-                    $new_item_txt = $bysubunionidRet[0]['shortURL'];
-                    if (strpos($raw_item_url_txt, '下单') == false) {
-                        //原链接是不含“下单”的，需要去掉
-                        $new_item_txt = preg_replace('/下单/', '', $new_item_txt);
-                    }
-                    return response()->json(['status' => 'success','copy_txt'=>$new_item_txt,'commissionShare'=>$bysubunionidRet[0]['commissionShare'],'shortURL'=>$bysubunionidRet[0]['viewDetailUrl'],'successmsg'=>"","bysubunionidRet"=>$bysubunionidRet]);
+                    return response()->json(['status' => 'success','msg' => 'success','copy_txt'=>$tmpl,'commissionShare'=>$commissionShare,'shortURL'=>$shortURL]);
                 }
             }
-    
-       
         }catch(\Exception $e) {
             return response()->json(['status' => 'error','msg' => $e->getMessage()]);
         }
@@ -313,7 +251,7 @@ if (0) {
 
      //转链
     //必须下单后，才能查到订单
-    private function __bysubunionid2($goods_url)    
+    private function __bysubunionid2($item_url_txt,$goods_url)    
     {
         $goods_url = trim($goods_url);
         //判断是否为合法的url链接，用正则式来判断
@@ -321,25 +259,6 @@ if (0) {
         if (!preg_match($pattern, $goods_url)) {
             throw new \Exception("转链取得的URL错误,无法分析!");
         }
-      
-        //：https://*.jd.com/,要写正则式非jd.com
-        if (strpos($goods_url, 'jd.com') === false) {
-            //非jd.com的链接，不转链
-            // 只在URL部分前后加<em>标签，不对非URL部分处理
-            $shortURL = preg_replace('/(https?:\/\/[^\s]+)/u', '<span style="color:red;">$1</span>', $goods_url);
-            return ['errorTag'=>true,'isOrderTag'=>false,'rawURL'=>$goods_url,'shortURL'=>$shortURL,'commissionShare'=>''];
-        }
-        //从    $pattern2 = '/(下单[\s:：]?https?:\/\/[^\s]+)/u';中提取下单后面的链接给到了$goods_url, 
-        // $goods_url = "下单：https://u.jd.com/S11pPYH";
-        //用$pattern 提取链接
-
-        preg_match($pattern, $goods_url, $matches);
-        $task_goods_url = $matches[1];
-        // if (strpos($goods_url, '下单') !== false) {
-        //     preg_match($pattern, $goods_url, $matches);
-        //     $goods_url = preg_replace('/下单：/', '', $goods_url);
-        // }
-
         // $subUnionId = "";
         $subUnionId = User::where('id',$this->user_id)->value('sub_union_id');
         if (!$subUnionId) {
@@ -349,43 +268,38 @@ if (0) {
         
         $promotionBizParams = [
             'promotionCodeReq' => [
-                'materialId' => $task_goods_url, // 替换为实际的物料ID
+                'materialId' => $goods_url, // 替换为实际的物料ID
                 'subUnionId' => $subUnionId,
                 'sceneld' => 1
             ]
         ];
         
         $method =  "jd.union.open.promotion.bysubunionid.get";
-        // dump("273>>>",$promotionBizParams,$method);         
+        dump("273>>>",$promotionBizParams,$method);         
         save_log(['promotionBizParams'=>$promotionBizParams,'method'=>$method],'bysubunionid');
         $response = $this->callJdApi($method, $promotionBizParams);
-        // dump("275>>>",$response);    
+        dump("275>>>",$response);    
         if (empty($response['parsed']['jd_union_open_promotion_bysubunionid_get_responce']['getResult'])) {
             throw new \Exception("操作失败!");
         }
         $getResultStr = $response['parsed']['jd_union_open_promotion_bysubunionid_get_responce']['getResult'];
         $getResult = json_decode($getResultStr,true);
-
+ 
         if ($getResult['code']!=200) {
             throw new \Exception($getResult['message']);
         }  
         if (empty($getResult['data']['shortURL'])){
             throw new \Exception("转链失败!");
         } 
-        $isOrderTag = false;
         $commissionShare = '';
-        if (strpos($goods_url, '下单') !== false) {
+        if ($this->checkUrlContainsOrderKeyword($item_url_txt, $goods_url)) {
             // dump("247>>>",$item_url_txt, $goods_url);
             $goodsInfo = $this->__goodsQuery($getResult['data']['shortURL']);     
          
             $commissionShare = "佣金".$goodsInfo['commissionInfo']['commissionShare']."%";
-            $isOrderTag = true;
         } 
-        //goods_url
-        $retShortURL = preg_replace('/(https?:\/\/[^\s]+)/u', $getResult['data']['shortURL'], $goods_url);
- 
-        return ['errorTag'=>false,'rawURL'=>$goods_url,'shortURL'=>$retShortURL,'commissionShare'=>$commissionShare,'viewDetailUrl'=>$getResult['data']['shortURL'],'isOrderTag'=>$isOrderTag];
-         
+        
+        return ['shortURL'=>$getResult['data']['shortURL'],'commissionShare'=>$commissionShare];
                      
     }
 
@@ -418,11 +332,6 @@ if (0) {
         $url = isset($matches[0]) ? $matches[0] : '';  
         try {
             $goodsInfo = $this->__goodsQuery($url);
-           
-            // 直接处理单个商品对象，不需要循环
-            $goodsInfo['commissionInfo']['commissionShare2'] =  $goodsInfo['commissionInfo']['commissionShare'] - 0.1 ;
-            $goodsInfo['commissionInfo']['commission2'] = round($goodsInfo['commissionInfo']['commission'] * 0.9, 2);
-
             return response()->json(['status' => 'success','msg' => 'success','goodsInfo'=>$goodsInfo]);
         } catch(\Exception $e) {
             return response()->json(['status' => 'error','msg' => $e->getMessage()]);
