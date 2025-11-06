@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中奖弹窗示例 - 中国风</title>
+    <link rel="stylesheet" href="css/lottery-modal.css">
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', 'SimHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .demo-button {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4);
+            transition: all 0.3s;
+        }
+        
+        .demo-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <button class="demo-button" onclick="showLotteryModal('一等奖', 'iPhone 15 Pro Max')">
+        点击查看中奖弹窗效果
+    </button>
+
+    <!-- 中奖弹窗 -->
+    <div id="lotteryModal" class="lottery-modal-overlay" style="display: none;">
+        <div class="lottery-modal-container">
+            <span class="lottery-modal-close" onclick="closeLotteryModal()">×</span>
+            <h2 class="lottery-modal-title">恭喜中奖</h2>
+            <div class="lottery-modal-prize">
+                <div class="lottery-modal-prize-name" id="prizeName">一等奖</div>
+            </div>
+            <p class="lottery-modal-message" id="prizeMessage">您获得了：iPhone 15 Pro Max</p>
+            <button class="lottery-modal-button" onclick="closeLotteryModal()">确定</button>
+            
+            <!-- 装饰性闪光点 -->
+            <div class="lottery-modal-sparkle" style="top: 20%; left: 15%; animation-delay: 0s;"></div>
+            <div class="lottery-modal-sparkle" style="top: 30%; right: 20%; animation-delay: 0.5s;"></div>
+            <div class="lottery-modal-sparkle" style="bottom: 25%; left: 25%; animation-delay: 1s;"></div>
+            <div class="lottery-modal-sparkle" style="bottom: 35%; right: 15%; animation-delay: 1.5s;"></div>
+        </div>
+    </div>
+
+    <script>
+        function showLotteryModal(prizeLevel, prizeName) {
+            document.getElementById('lotteryModal').style.display = 'flex';
+            document.getElementById('prizeName').textContent = prizeLevel;
+            document.getElementById('prizeMessage').textContent = '您获得了：' + prizeName;
+        }
+
+        function closeLotteryModal() {
+            document.getElementById('lotteryModal').style.display = 'none';
+        }
+
+        // 点击遮罩层关闭弹窗
+        document.getElementById('lotteryModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLotteryModal();
+            }
+        });
+
+        // ESC键关闭弹窗
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeLotteryModal();
+            }
+        });
+    </script>
+</body>
+</html>
+

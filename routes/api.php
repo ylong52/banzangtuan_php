@@ -112,10 +112,19 @@ Route::match(['get', 'post'], '/h5/login',[App\Http\Controllers\Api\h5\LoginCont
 //     Route::match(['get', 'post'], '/h5/getUserInfo',[App\Http\Controllers\Api\h5\LoginController::class,'getUserInfo']);
 // });
 
+// H5 登录路由（不需要认证）
+Route::match(['get'], '/h5/lottery/getPrizeList',[App\Http\Controllers\Api\h5\LotteryApiController::class,'getLotteryPrizeList']);  ##奖品列表
+
+Route::match(['post'], '/h5/lottery/openLottery',[App\Http\Controllers\Api\h5\LotteryApiController::class,'openLottery']);  ##开奖
+
+
 // H5 需要认证的路由组（使用中间件方式）
 Route::prefix('h5')->middleware('h5.auth')->group(function () {
     // 用户相关路由
     Route::match(['get', 'post'], '/jdgoods/bysubunionid',[App\Http\Controllers\Api\h5\JdGoodsController::class,'bysubunionid']);
+
+
+
     
 });
 

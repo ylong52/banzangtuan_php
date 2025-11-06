@@ -69,5 +69,14 @@ Route::group([
  
     $router->post('user-commission-settlement/getUserStats', 'UserCommissionSettlementController@getUserStats');
 
-    
+    #抽奖管理
+    $router->resource('lottery-prize', 'LotteryPrizeController');
+    #抽奖码
+    $router->resource('lottery-codes', 'LotteryCodesController');
+    $router->post('lottery-codes/disable-status', 'LotteryCodesController@disableStatus')->name('lottery-codes.disable-status');
+    $router->post('lottery-codes/enable-status', 'LotteryCodesController@enableStatus')->name('lottery-codes.enable-status');
+ 
+    #抽奖记录
+    $router->resource('lottery-drawrecords', 'LotteryDrawrecordsController');
+
 });
