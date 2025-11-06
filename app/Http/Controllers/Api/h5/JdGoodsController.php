@@ -1,28 +1,21 @@
 <?php
 
-namespace App\Http\Controllers\Api;
-
-use App\Models\GlobalConfig;
+namespace App\Http\Controllers\Api\h5;
+use Illuminate\Http\Request;
+use App\Services\JdUnionClient;
 use App\Models\User;
 use App\Models\Orders;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
-use SebastianBergmann\CliParser\AmbiguousOptionException;
-use Illuminate\Support\Facades\Http;  
-use Illuminate\Support\Str;
-use App\Http\Controllers\ApiController;
-use App\Services\JdUnionClient;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx\Rels;
+use App\Models\Goods;
+use App\Services\JdGoodsSevice;
 
-class JdApiController extends ApiController
+
+class JdGoodsController extends H5BaseController
 {
     public $appkey, $appSecret;
 
     public function __construct()
     {        
+ 
         parent::__construct();
         $this->appkey = "e5f035c22a6ca67a748154f781bb6c20";
         $this->appSecret = "e0d9c178fbf2444b9bb8dbf9f09e8365";
@@ -46,117 +39,20 @@ class JdApiController extends ApiController
     //4, 链接内是非官方链接
     public function bysubunionid(Request $request)    
     {
-
-if (0) {        
- //================ 第一种情况==================          
-        $raw_item_url_txt = "
-         美的 MD12L5PROMAX 洗烘一体 12公斤aaaaaaa
-
-🔥7.3折⎜◉2946.4💰
-
-1⃣️PLUS独享：立减16
-2⃣️300券：https://y-03.cn/QpUrWYa2
-3⃣️补贴20%：支付立减
-──────────────
-🛍下单：https://u.jd.com/S11pPYH
-
-美的 MD12L5PROMAX 洗烘一体 12公斤b2
-
-🔥7.3折⎜◉2946.4💰
-
-1⃣️PLUS独享：立减16
-2⃣️300券：https://y-03.cn/QpUrWYa2
-3⃣️补贴20%：支付立减
-──────────────
-🛍下单 ：https://u.jd.com/SDgyFUx
-         ";
-        
-// $raw_item_url_txt = "
-//          美的 MD12L5PROMAX 洗烘一体 12公斤aaaaaaa
-
-// 🔥7.3折⎜◉2946.4💰
-
-// 1⃣️PLUS独享：立减16
-// 2⃣️300券：https://y-03.cn/QpUrWYa2
-// 3⃣️补贴20%：支付立减
-// ──────────────
-// 🛍下单：https://u.jd.com/S11pPYH
-// ";
-
-//================ 第2种情况  ==================  
-// $raw_item_url_txt = "
-// 美的 MD12L5PROMAX 洗烘一体 12公斤aaaaaaa
-
-// 🔥7.3折⎜◉2946.4💰
-
-// 1⃣️PLUS独享：立减16
- 
-// 3⃣️补贴20%：支付立减
-// ──────────────
-// 🛍下单：https://u.jd.com/S11pPYH
-
-// ";
-
-//================ 第3种情况  ==================  
-// $raw_item_url_txt = "
-// https://u.jd.com/S11pPYH
-
-// ";
-
-
-
-// $raw_item_url_txt = "
-
-// 小天鹅 TD10VE40SE 洗烘一体 10公斤
-
-// 🔥预售⎜◉3453.52💰
-
-// 1⃣️PLUS独享：立减19.6
-// 2⃣️9折券：https://u.jd.com/SafhkZh 
-// 3⃣️200券：https://y-03.cn/IHWdhY 
-// 4⃣️补贴20%：支付立减
-// 5⃣️下单反現：咨询客服晒单反50亓金豆
-// ──────────────
-// 🛍付定 10日20点下单：https://u.jd.com/Sgfh4zU 
-
-// ";
-
-$raw_item_url_txt ="
-https://u.jd.com/SGRYaZF
-";
-
-
-}
-
-// $request->item_id = "
-// 小天鹅 蓝氧2.0 洗烘套装TG100V89PRO+TH100VH89PRO
-
-// 🔥2.8折|◉3479.28💰
-
-// 1️⃣以旧换新：补贴2100(选平板电脑-iPad 9 登记不需要提供)
-// 2️⃣国补20%：咨询客服使用
-// 3️⃣9折券https://u.jd.com/SDRfLb0
-// 4️⃣4800券hhttps://u.jd.com/SgXE5BS
-// ──────────────
-// 🛍下单：https://u.jd.com/SOXBFoy
-
-// ⚠️登记http://jd2025.cn
-// ‼️国补地区自测，少部分城市可用
-// ";
-
-// $request->item_id = "
-// 【京东】https://3.cn/2porp-78?jkl=@OFzLBAZcuinE@ CA8680 「海尔520升594超薄零嵌全空间冰箱」
-// 点击链接直接打开 或者复制文案打开京东
-// ";
+       
+        // $request->item_id = "
+        // 【京东】https://3.cn/2porp-78?jkl=@OFzLBAZcuinE@ CA8680 「海尔520升594超薄零嵌全空间冰箱」
+        // 点击链接直接打开 或者复制文案打开京东
+        // ";
 
         if (empty($request->item_id)) {
             return response()->json(['status' => 'error','msg' => 'item_id参数错误!']);
         }        
         $raw_item_url_txt = $request->item_id;
         try {
-                       
+     
             $pattern1 = '/https?:\/\/[a-zA-Z0-9\.\/\:\-\_\?\=\&\%]+/u';
- 
+            
             if (preg_match($pattern1, $raw_item_url_txt) ) {
                 //================ 第一种情况完成 ==================          
                 // 同时包含两个关键词时，执行这里的逻辑                
@@ -195,7 +91,9 @@ https://u.jd.com/SGRYaZF
                 }
   
                 $displayStr = $new_item_txt;
+                // 去除“从”到第一个空格之间的内容，包括“从”本身
                 $displayStr = preg_replace('/\?[^\s]*\s?/u', '', $displayStr);
+                // https://u.jd.com/SGUvkBL?hjk=@iMF5681@MF5681 【小天】
                 $copy_txt =  preg_replace('/<span\s+style="color:red;">(https?:\/\/[^<]+)<\/span>/i', '$1', $displayStr);
 
                 if (count($bysubunionidRet) > 1 ) {
@@ -281,7 +179,7 @@ https://u.jd.com/SGRYaZF
         ];
        
             $method =  "jd.union.open.promotion.bysubunionid.get";
-      
+
             save_log(['promotionBizParams'=>$promotionBizParams,'method'=>$method],'bysubunionid');
             $response = $this->callJdApi($method, $promotionBizParams);
             
@@ -378,7 +276,6 @@ https://u.jd.com/SGRYaZF
         if (empty(($keyword = $request->keyword))) {
             return response()->json(['status' => 'error','msg' => "keyword参数不能为空"]);
         }
-        // $keyword = "【京东】https://u.jd.com/YO58R3K「爱他美澳洲白金2段6罐 社群领券」点击链接直接打开";
         preg_match('/(https?:\/\/[\w.-]+\.[\w]+\/[\w-]+(?:「[^」]*」)?)/', $keyword, $matches);
         $url = isset($matches[0]) ? $matches[0] : '';  
         try {
@@ -400,11 +297,7 @@ https://u.jd.com/SGRYaZF
     }
 
     function __goodsQuery($keyword)  {
-        // $keyword = "【京东】https://u.jd.com/YO58R3K「爱他美澳洲白金2段6罐 社群领券」点击链接直接打开";
-        // $keyword = "【京东】https://3.cn/2odH-z1a「京东百亿补贴」点击链接直接打开";
-        // if (empty(($keyword = $request->keyword))) {
-        //     return response()->json(['status' => 'error','msg' => "keyword参数不能为空"]);
-        // }
+ 
         $method ="jd.union.open.goods.query";
         $prams = [
             "keyword"=>$keyword,
@@ -453,108 +346,108 @@ https://u.jd.com/SGRYaZF
 
     //订单查询，已下单未支付的。只能查1小时之内有
     //此处无法使用缓存，订单状态经常在变化。订单24小时未支付会自动取消
-    //https://union.jd.com/openplatform/api/v2?apiName=jd.union.open.order.row.query
-    function orderQuery(Request $request) {
-        $method ="jd.union.open.order.row.query";
-        $orderReq = [
-            "pageIndex"=>1,
-            "pageSize"=>200,
-            "fields"=>"goodsInfo",
-            "type"=>1,  //(1：下单时间，2：完成时间（购买用户确认收货时间），3：更新时间                
-        ];
-        $orderReq['endTime'] = date('Y-m-d H:i:s');
-        $orderReq['startTime'] = date('Y-m-d H:i:s', strtotime($orderReq['endTime']) - 3600);
-        if ($request->type) {
-            $orderReq['type'] = $request->type;
-        }
-        if ($request->pageIndex) {
-            $orderReq['pageIndex'] = $request->pageIndex;
-        }
-        if ($request->pageSize) {
-            $orderReq['pageSize'] = $request->pageSize;
-        }
-        if ($request->startTime) {
-            $orderReq['startTime'] = $request->startTime;
-        }
-        if ($request->endTime) {
-            $orderReq['endTime'] = $request->endTime;
-        }
-        try {
-            $result = $this->callJdApi($method,['orderReq'=>$orderReq]);
-            $queryResult = null;
-            if ($result['http_code']==200 && isset($result['response']) && is_string($result['response'])) {
-                $result['response'] = json_decode($result['response'],true);
-                if (isset($result['response']['jd_union_open_order_row_query_responce']['queryResult']) && is_string($result['response']['jd_union_open_order_row_query_responce']['queryResult'])) {
-                    $queryResult = json_decode($result['response']['jd_union_open_order_row_query_responce']['queryResult'],true);
-                }
-            }
-            if ($queryResult == null) {
-                throw new \Exception("操作失败!");
-            }
-// dd($queryResult);     
-            $hasMore = false;  //用于翻页还有数据吗？
-            if (count($queryResult['data'])>0) {
-                foreach ($queryResult['data'] as $order) {
-                    // 从goodsInfo中提取商品相关信息
-                    $goodsInfo = $order['goodsInfo'] ?? [];
+//     //https://union.jd.com/openplatform/api/v2?apiName=jd.union.open.order.row.query
+//     function orderQuery(Request $request) {
+//         $method ="jd.union.open.order.row.query";
+//         $orderReq = [
+//             "pageIndex"=>1,
+//             "pageSize"=>200,
+//             "fields"=>"goodsInfo",
+//             "type"=>1,  //(1：下单时间，2：完成时间（购买用户确认收货时间），3：更新时间                
+//         ];
+//         $orderReq['endTime'] = date('Y-m-d H:i:s');
+//         $orderReq['startTime'] = date('Y-m-d H:i:s', strtotime($orderReq['endTime']) - 3600);
+//         if ($request->type) {
+//             $orderReq['type'] = $request->type;
+//         }
+//         if ($request->pageIndex) {
+//             $orderReq['pageIndex'] = $request->pageIndex;
+//         }
+//         if ($request->pageSize) {
+//             $orderReq['pageSize'] = $request->pageSize;
+//         }
+//         if ($request->startTime) {
+//             $orderReq['startTime'] = $request->startTime;
+//         }
+//         if ($request->endTime) {
+//             $orderReq['endTime'] = $request->endTime;
+//         }
+//         try {
+//             $result = $this->callJdApi($method,['orderReq'=>$orderReq]);
+//             $queryResult = null;
+//             if ($result['http_code']==200 && isset($result['response']) && is_string($result['response'])) {
+//                 $result['response'] = json_decode($result['response'],true);
+//                 if (isset($result['response']['jd_union_open_order_row_query_responce']['queryResult']) && is_string($result['response']['jd_union_open_order_row_query_responce']['queryResult'])) {
+//                     $queryResult = json_decode($result['response']['jd_union_open_order_row_query_responce']['queryResult'],true);
+//                 }
+//             }
+//             if ($queryResult == null) {
+//                 throw new \Exception("操作失败!");
+//             }
+// // dd($queryResult);     
+//             $hasMore = false;  //用于翻页还有数据吗？
+//             if (count($queryResult['data'])>0) {
+//                 foreach ($queryResult['data'] as $order) {
+//                     // 从goodsInfo中提取商品相关信息
+//                     $goodsInfo = $order['goodsInfo'] ?? [];
                     
-                    // 准备订单数据
-                    $orderData = [
-                        'id' => $order['id'] ?? '',
-                        'sku_name' => $order['skuName'] ?? '',
-                        'order_id' => $order['orderId'] ?? '',
-                        'finish_time' => !empty($order['finishTime']) ? $order['finishTime'] : null,
-                        'order_time' => !empty($order['orderTime']) ? $order['orderTime'] : null,
-                        'modify_time' => !empty($order['modifyTime']) ? $order['modifyTime'] : null,
-                        'sku_id' => $order['skuId'] ?? '',
-                        'valid_code' => $order['validCode'] ?? 0,
-                        'image_url' => $goodsInfo['imageUrl'] ?? '', // 从goodsInfo中获取
-                        'owner' => $goodsInfo['owner'] ?? '', // 从goodsInfo中获取
-                        'shop_name' => $goodsInfo['shopName'] ?? '', // 从goodsInfo中获取
-                        'commission_rate' => $order['commissionRate'] ?? 0,
-                        'sub_side_rate' => $order['subSideRate'] ?? 0,
-                        'subsidy_rate' => $order['subsidyRate'] ?? 0,
-                        'final_rate' => $order['finalRate'] ?? 0,
-                        'estimate_cos_price' => $order['estimateCosPrice'] ?? 0,
-                        'estimate_fee' => $order['estimateFee'] ?? 0,
-                        'actual_cos_price' => $order['actualCosPrice'] ?? 0,
-                        'actual_fee' => $order['actualFee'] ?? 0,
-                        'sub_union_id' => $order['subUnionId'] ?? '',
-                        'user_id' => Auth::id(), // 当前登录用户ID
-                        'sku_num'=> $order['skuNum'] ?? 0,
-                        'price' => $order['price'] ?? 0,
-                        'total_price' => round($order['skuNum'] * $order['price'], 2),
-                        'order_json' => json_encode($order, JSON_UNESCAPED_UNICODE), // 保存完整的原始订单数据 
-                    ];
+//                     // 准备订单数据
+//                     $orderData = [
+//                         'id' => $order['id'] ?? '',
+//                         'sku_name' => $order['skuName'] ?? '',
+//                         'order_id' => $order['orderId'] ?? '',
+//                         'finish_time' => !empty($order['finishTime']) ? $order['finishTime'] : null,
+//                         'order_time' => !empty($order['orderTime']) ? $order['orderTime'] : null,
+//                         'modify_time' => !empty($order['modifyTime']) ? $order['modifyTime'] : null,
+//                         'sku_id' => $order['skuId'] ?? '',
+//                         'valid_code' => $order['validCode'] ?? 0,
+//                         'image_url' => $goodsInfo['imageUrl'] ?? '', // 从goodsInfo中获取
+//                         'owner' => $goodsInfo['owner'] ?? '', // 从goodsInfo中获取
+//                         'shop_name' => $goodsInfo['shopName'] ?? '', // 从goodsInfo中获取
+//                         'commission_rate' => $order['commissionRate'] ?? 0,
+//                         'sub_side_rate' => $order['subSideRate'] ?? 0,
+//                         'subsidy_rate' => $order['subsidyRate'] ?? 0,
+//                         'final_rate' => $order['finalRate'] ?? 0,
+//                         'estimate_cos_price' => $order['estimateCosPrice'] ?? 0,
+//                         'estimate_fee' => $order['estimateFee'] ?? 0,
+//                         'actual_cos_price' => $order['actualCosPrice'] ?? 0,
+//                         'actual_fee' => $order['actualFee'] ?? 0,
+//                         'sub_union_id' => $order['subUnionId'] ?? '',
+//                         'user_id' => Auth::id(), // 当前登录用户ID
+//                         'sku_num'=> $order['skuNum'] ?? 0,
+//                         'price' => $order['price'] ?? 0,
+//                         'total_price' => round($order['skuNum'] * $order['price'], 2),
+//                         'order_json' => json_encode($order, JSON_UNESCAPED_UNICODE), // 保存完整的原始订单数据 
+//                     ];
 
-                    // 查找现有订单
-                    $existingOrder = Orders::where('id', $order['id'])->first();
+//                     // 查找现有订单
+//                     $existingOrder = Orders::where('id', $order['id'])->first();
                     
-                    if ($existingOrder) {
-                        // 只检查modify_time字段是否有变化
-                        $hasChanges = false;
-                        if ($existingOrder->modify_time != $orderData['modify_time']) {
-                            $hasChanges = true;
-                        }
+//                     if ($existingOrder) {
+//                         // 只检查modify_time字段是否有变化
+//                         $hasChanges = false;
+//                         if ($existingOrder->modify_time != $orderData['modify_time']) {
+//                             $hasChanges = true;
+//                         }
                         
-                        // 只有当modify_time有变化时才更新
-                        if ($hasChanges) {
-                            $existingOrder->update($orderData);
-                        }
-                    } else {
-                        // 如果是新订单，直接创建
-                        // $orderData['created_at'] = date('Y-m-d H:i:s');
-                        // $orderData['updated_at'] = date('Y-m-d H:i:s');
-                        Orders::create($orderData);
-                    }
-                }
-            }
-            return response()->json(['status' => 'success','msg' => 'success','queryResult'=>$queryResult['data']??[]]);
+//                         // 只有当modify_time有变化时才更新
+//                         if ($hasChanges) {
+//                             $existingOrder->update($orderData);
+//                         }
+//                     } else {
+//                         // 如果是新订单，直接创建
+//                         // $orderData['created_at'] = date('Y-m-d H:i:s');
+//                         // $orderData['updated_at'] = date('Y-m-d H:i:s');
+//                         Orders::create($orderData);
+//                     }
+//                 }
+//             }
+//             return response()->json(['status' => 'success','msg' => 'success','queryResult'=>$queryResult['data']??[]]);
 
-        } catch(\Exception $e) {
-            return response()->json(['status' => 'error','msg' => $e->getMessage()]);
-        }
-    }
+//         } catch(\Exception $e) {
+//             return response()->json(['status' => 'error','msg' => $e->getMessage()]);
+//         }
+//     }
     
 
     function callJdApi($method, $bizParams, $accessToken = '') {
@@ -573,39 +466,7 @@ https://u.jd.com/SGRYaZF
         $client = new JdUnionClient($config);
         $response = $client->execute($bizParams);
         return $response;
-        //  dd("78>>>",$response['parsed']['jd_union_open_promotion_bysubunionid_get_responce']);
-        // if (isset($response['parsed']['jd_union_open_promotion_bysubunionid_get_responce']['getResult'])) {
-        //     $getResultStr = $response['parsed']['jd_union_open_promotion_bysubunionid_get_responce']['getResult'];
-        //     $getResult = json_decode($getResultStr,true);
-        //     if ($getResult['code']!=0) {
-        //         throw new \Exception($getResult['message']);
-        //     } else {
-        //         if (empty($getResult['data']['shortURL'])){
-        //             throw new \Exception("转链失败!");
-        //         } else {
-        //             return $getResult['data']['shortURL'];
-        //         }
-        //     }
-        // } else {
-        //     throw new \Exception("操作失败!");
-        // }
-        // try {
-        //     if (isset($response['error'])) {
-        //         return ['success' => false, 'message' => "调用失败：" . $response['message'], 'data' => null];
-        //     } elseif ($response['http_code'] === 200) {
-        //         if (isset($response['parsed']['error_response'])) {
-        //             return ['success' => false, 'message' => "接口返回错误：" . json_encode($response['parsed']['error_response'], JSON_UNESCAPED_UNICODE), 'data' => $response['parsed']];
-        //         } else {
-        //             // 成功时返回完整的解析后响应数据
-        //             return ['success' => true, 'message' => '接口调用成功', 'data' => $response['parsed']];
-        //         }
-        //     } else {
-        //         return ['success' => false, 'message' => "HTTP 请求失败，状态码：" . $response['http_code'] . "，响应：" . $response['response'], 'data' => null];
-        //     }
-        // } catch (\Exception $e) {
-        //     return ['success' => false, 'message' => $e->getMessage(), 'data' => null];
-        // }
-
+       
     }
 
 

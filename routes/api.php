@@ -51,7 +51,7 @@ Route::get('/users', function (Request $request) {
         ->paginate(null, ['id', 'username as text']);
 });
 
-
+Route::match(['get', 'post'], '/geoip',[App\Http\Controllers\Api\GeoIpController::class,'geoip']);
 
 
 
@@ -101,3 +101,23 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
 // Route::match(['get', 'post'], '/jdshop/bysubunionid',[App\Http\Controllers\Api\JdApiController::class,'bysubunionid']);
+
+
+
+// H5 登录路由（不需要认证）
+Route::match(['get', 'post'], '/h5/login',[App\Http\Controllers\Api\h5\LoginController::class,'login']);
+
+// // H5 需要认证的路由组（使用中间件方式）
+// Route::middleware('h5.auth')->group(function () {
+//     Route::match(['get', 'post'], '/h5/getUserInfo',[App\Http\Controllers\Api\h5\LoginController::class,'getUserInfo']);
+// });
+
+// H5 需要认证的路由组（使用中间件方式）
+Route::prefix('h5')->middleware('h5.auth')->group(function () {
+    // 用户相关路由
+    Route::match(['get', 'post'], '/jdgoods/bysubunionid',[App\Http\Controllers\Api\h5\JdGoodsController::class,'bysubunionid']);
+    
+});
+
+
+

@@ -17,6 +17,7 @@ class JorderTimeSegmentsCommand extends Command
 
     public function handle()
     {
+ 
         $this->info('开始京东订单时段查询...,当前时间:'.date('Y-m-d H:i:s'));
         $this->createJorderTimeSegments();
         sleep(1);

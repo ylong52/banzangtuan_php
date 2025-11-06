@@ -19,8 +19,8 @@ class JdGoodsSevice
     public $appkey, $appSecret;
     public function __construct()
     {        
-        $this->appkey = "49307c59823cec6b2f0fb490f0d3c957";
-        $this->appSecret = "fe774b73fb63417bad12286ad8f716f7";                 
+        $this->appkey = "e5f035c22a6ca67a748154f781bb6c20";
+        $this->appSecret = "e0d9c178fbf2444b9bb8dbf9f09e8365";                 
     }
 
     function goodsQuery($keyword)  {
@@ -146,7 +146,7 @@ class JdGoodsSevice
         $orderReq['endTime'] = date('Y-m-d H:i:s', strtotime($starTime) + 3600);                 
         $orderReq['pageIndex'] = $pageIndex;                
         $orderReq['pageSize'] = 200;
-        echo "start_time:".$starTime.",end_time:".$orderReq['endTime'].",pageIndex:".$pageIndex."\n";
+        // echo "start_time:".$starTime.",end_time:".$orderReq['endTime'].",pageIndex:".$pageIndex."\n";
         try {
             $result = $this->callJdApi($method,['orderReq'=>$orderReq]);
             $queryResult = null;
@@ -173,6 +173,14 @@ class JdGoodsSevice
                     if (empty($order['subUnionId'])) {
                         continue;
                     }
+                    if (in_array($order['validCode'],[2])) {
+                        //2, "无效-拆单";
+                        continue;
+                    }
+                    $estimateFee_Rate = 0.9;
+                    if ($order['commissionRate'] >5 ) {
+                        $estimateFee_Rate = 0.8;
+                    }
                     // 准备订单数据
                     $orderData = [
                         'id' => $order['id'] ?? '',
@@ -188,10 +196,14 @@ class JdGoodsSevice
                         'trace_type' => $order['traceType'] ?? 0,
                         'image_url' => $this->formatImageUrl($goodsInfo['imageUrl']) ?? '', // 从goodsInfo中获取
                         'shop_name' => trim($goodsInfo['shopName']) ?? '', // 从goodsInfo中获取
-                        'actual_cos_price' => $order['actualCosPrice']?($order['actualCosPrice']*0.9): 0,
+                        'actual_cos_price' => $order['actualCosPrice']??0,
                         'commission_rate' => $order['commissionRate'] ?? 0,
                         'estimate_cos_price' => $order['estimateCosPrice'] ?? 0,
-                        'estimate_fee' => $order['estimateFee']?($order['estimateFee']*0.9):0,    //折扣0.9
+                        'final_rate' => $order['finalRate'] ?? 0,
+                        'estimate_fee' => $order['estimateFee']?($order['estimateFee']* $estimateFee_Rate):0,    //折扣0.9
+                        'actual_fee' => $order['actualFee']?($order['actualFee']* $estimateFee_Rate):0,    //折扣0.9
+                        'sub_side_rate' => $order['subSideRate'] ?? 0,
+                        'subsidy_rate' => $order['subsidyRate'] ?? 0,
                         'order_time' => !empty($order['orderTime']) ? $order['orderTime'] : null,
                         'modify_time' => !empty($order['modifyTime']) ? $order['modifyTime'] : null,
                         'finish_time' => !empty($order['finishTime']) ? $order['finishTime'] : null,
@@ -261,6 +273,37 @@ class JdGoodsSevice
         return $response;
 
     }
+
+
+    function orderIdQuery($orderId) {
+        $method ="jd.union.open.order.row.query";
+        $orderReq = [            
+            "orderId"=>$orderId,
+            "parentId"=>0
+        ];       
+        try {
+            $result = $this->callJdApi($method,['orderReq'=>$orderReq]);        
+            $queryResult = null;
+            if ($result['http_code']==200 && isset($result['response']) && is_string($result['response'])) {
+                $result['response'] = json_decode($result['response'],true);
+                if (isset($result['response']['jd_union_open_order_row_query_responce']['queryResult']) && is_string($result['response']['jd_union_open_order_row_query_responce']['queryResult'])) {
+                    $queryResult = json_decode($result['response']['jd_union_open_order_row_query_responce']['queryResult'],true);
+                }
+            }
+            if ($queryResult == null) {
+                throw new \Exception("操作失败!");
+            }
+            
+            return $queryResult;
+        } catch(\Exception $e) {
+            throw new \Exception($e->getMessage());
+        }
+
+        // echo "start_time:".$starTime.",end_time:".$orderReq['endTime'].",pageIndex:".$pageIndex."\n";
+        
+
+    }
+
 
 
 

@@ -8,6 +8,7 @@ use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Support\Facades\Auth;
  
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
  
 
 
@@ -24,12 +25,14 @@ class ApiController extends BaseController
     protected $request;
     protected $user_id = null;
     protected $user_status = 1;
-   
+    
     
     public function __construct()
     {
         $request = Request();
         $this->request = is_null($request) ? app(Request::class) : $request;
+         
+        
         $user = Auth::guard('sanctum')->user();
  
         if ($user) {

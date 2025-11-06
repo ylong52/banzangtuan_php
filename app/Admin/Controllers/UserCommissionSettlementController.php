@@ -76,34 +76,52 @@ class UserCommissionSettlementController extends AdminController
     {
        
         //6.上月已经收货、应得佣金
-        $sum_estimate_fee['totalLastMonthEstimateCosPrice'] = Orders::query()
-        ->where('user_id', $user_id)
-            ->where('valid_code', 17)
-            ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
-            ->sum('actual_fee');
-        $sum_estimate_fee['totalLastMonthEstimateCosOrders'] = Orders::query()
-        ->where('user_id', $user_id)
-        ->where('valid_code', 17)
-        ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
-        ->count();  
+        // $sum_estimate_fee['totalLastMonthEstimateCosPrice'] = Orders::query()
+        // ->where('user_id', $user_id)
+        //     ->where('valid_code', 17)
+        //     ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
+        //     ->sum('actual_fee');
+        // $sum_estimate_fee['totalLastMonthEstimateCosOrders'] = Orders::query()
+        // ->where('user_id', $user_id)
+        // ->where('valid_code', 17)
+        // ->whereBetween('order_time', [date('Y-m-01 00:00:00', strtotime('last month')), date('Y-m-t 23:59:59', strtotime('last month'))])
+        // ->count();  
         //7.本月已经收货、应得佣金
         // 修改为本月的统计
-        $sum_estimate_fee['totalThisMonthEstimateCosPrice'] = Orders::query()
-            ->where('user_id', $user_id)
-            ->where('valid_code', 17)
-            ->whereBetween('order_time', [
-                date('Y-m-01 00:00:00'), 
-                date('Y-m-t 23:59:59')
-            ])
-            ->sum('actual_fee');
-        $sum_estimate_fee['totalThisMonthEstimateCosOrders'] = Orders::query()
-            ->where('user_id', $user_id)
-            ->where('valid_code', 17)
-            ->whereBetween('order_time', [
-                date('Y-m-01 00:00:00'), 
-                date('Y-m-t 23:59:59')
-            ])
-            ->count();
+        // $sum_estimate_fee['totalThisMonthEstimateCosPrice'] = Orders::query()
+        //     ->where('user_id', $user_id)
+        //     ->where('valid_code', 17)
+        //     ->whereBetween('order_time', [
+        //         date('Y-m-01 00:00:00'), 
+        //         date('Y-m-t 23:59:59')
+        //     ])
+        //     ->sum('actual_fee');
+        // $sum_estimate_fee['totalThisMonthEstimateCosOrders'] = Orders::query()
+        //     ->where('user_id', $user_id)
+        //     ->where('valid_code', 17)
+        //     ->whereBetween('order_time', [
+        //         date('Y-m-01 00:00:00'), 
+        //         date('Y-m-t 23:59:59')
+        //     ])
+        //     ->count();
+        //6.上月已经收货、应得佣金
+        $lastMonthTotalOrderActualFee = Orders::totalOrderActualFee(
+            $user_id,
+            date('Y-m-01 00:00:00', strtotime('last month')),
+            date('Y-m-t 23:59:59', strtotime('last month'))
+        );
+        $sum_estimate_fee['totalLastMonthEstimateCosPrice'] = $lastMonthTotalOrderActualFee['sum_actual_fee'];
+        $sum_estimate_fee['totalLastMonthEstimateCosOrders'] = $lastMonthTotalOrderActualFee['count_actual_fee'];
+        ///7.本月已经收货、应得佣金
+        $totalThisMonthEstimateCosOrders = Orders::totalOrderActualFee(
+            $user_id,
+            date('Y-m-01 00:00:00'),
+            date('Y-m-t 23:59:59')
+        );
+        $sum_estimate_fee['totalThisMonthEstimateCosPrice'] = $totalThisMonthEstimateCosOrders['sum_actual_fee'];
+        $sum_estimate_fee['totalThisMonthEstimateCosOrders'] = $totalThisMonthEstimateCosOrders['count_actual_fee'];
+
+
         $sum_estimate_fee['last_month'] = date('Y年m月', strtotime('last month'));  //上月
         $sum_estimate_fee['this_month'] = date('Y年m月');  //本月
         return $sum_estimate_fee;

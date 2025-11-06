@@ -101,6 +101,14 @@ class AuthController extends ApiController
             }
             $this->saveUserPromotion($user->id, $invitationCode);
             // 生成token
+            /**              
+             * createToken() 方法参数说明：
+             * 1. 'wechat-token' - 令牌名称，用于标识这个令牌的用途
+             * 2. ['*'] - 权限范围，'*' 表示所有权限
+             * 3. now()->addDays(365) - 令牌过期时间，从当前时间开始365天后过期
+             * 
+             * plainTextToken - 获取令牌的纯文本形式，用于返回给客户端
+             */
             $token = $user->createToken('wechat-token', ['*'], now()->addDays(365))->plainTextToken;
                             
             $userInfo = $user->makeHidden(['password', 'deleted_at', 'created_at', 'updated_at', 'balance' ]);
@@ -124,13 +132,15 @@ class AuthController extends ApiController
         }
     }
 
-    private function saveUserPromotion($user_id, $invitation_code) {       
-        if (!$this->verifyInvitationCode($invitation_code)) {
+    private function saveUserPromotion($user_id, $invitation_code) {      
+ 
+        if (!$this->verifyInvitationCode($user_id,$invitation_code)) {
             return false;
         }
+        $id = User::where(['invitation_code'=>$invitation_code])->value("id");
         $promotion = new \App\Models\Promotion();
         $promotion->user_id = $user_id; //新用户
-        $promotion->referred_by = $invitation_code;  // 推荐人
+        $promotion->referred_by = $id;  // 推荐人
         $promotion->referral_code = $invitation_code;  // 推荐人
         $promotion->registration_time = date('Y-m-d H:i:s');
         $promotion->reward_amount = 0;
@@ -138,10 +148,15 @@ class AuthController extends ApiController
         $promotion->save();
     }   
 
-    private function verifyInvitationCode($invitationCode) { 
-        if (intval($this->user_id) == 0 ){
+    private function verifyInvitationCode($user_id,$invitationCode) { 
+        if (intval($user_id) == 0 ){
             return false;
         } 
+        $invitation_code = User::where('id', $user_id)->value('invitation_code');
+        if (!empty($invitation_code)){
+            //已经绑了注册码
+            return false;
+        }
         $count = User::where('invitation_code', $invitationCode)        
         ->where('id', '!=', $this->user_id)
         ->count();
@@ -153,9 +168,21 @@ class AuthController extends ApiController
 
     private function generateInvitationCode() {
         do {
-            // 生成2位随机数字（00-99）
-            $invitationCode = generateString();            
-            // 检查数据库中是否已存在该用户名
+            // 生成5位随机字符串（数字+大小写字母）
+            $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            $string = '';
+            for ($i = 0; $i < 5; $i++) {  // 修复：应该是 < 5 而不是 <= 4
+                $string .= $characters[rand(0, strlen($characters) - 1)];
+            }
+            
+            // 生成1位小写字母作为前缀
+            $characters = 'abcdefghijklmnopqrstuvwxyz';
+            $string2 = $characters[rand(0, strlen($characters) - 1)];
+
+            // 组合：1位小写字母 + 5位随机字符串（转为小写）
+            $invitationCode = $string2 . strtolower($string);         
+            
+            // 检查数据库中是否已存在该邀请码
             $exists = User::where('invitation_code', $invitationCode)->exists();            
         } while ($exists); // 若存在则重新生成
         return $invitationCode;

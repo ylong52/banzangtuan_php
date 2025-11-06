@@ -13,6 +13,15 @@ use Illuminate\Support\Facades\Validator;
 
 class OrdersController extends ApiController
 {
+
+    // public function __construct(){
+    //     parent::__construct();
+ 
+    //     if (!empty($this->user_id)) {
+    //         $this->user_id = 1002;
+    //     }
+    // }
+
     public function index(Request $request) {
        
         $start_time = date('Y-m-d 00:00:00');
@@ -47,41 +56,23 @@ class OrdersController extends ApiController
             $start_time = $request->customize_startDate.' 00:00:00';
             $end_time = $request->customize_endDate.' 23:59:59';
         }
-        // 全部，待付款，已付款，已发货，已完成，已取消，已失效
-        $wherevalid_code = [];
-        if (!empty($request->valid_code_txt) && $request->valid_code_txt!='全部') {
-            if($request->valid_code_txt =='已付款') {
-                $wherevalid_code = ['valid_code'=>16];
-            }elseif($request->valid_code_txt =='已发货') {
-                $wherevalid_code = ['express_status'=>20];
-            }elseif($request->valid_code_txt =='已完成') {
-                $wherevalid_code = ['valid_code'=>17];
-            }elseif($request->valid_code_txt =='已取消') {
-                $wherevalid_code = ['valid_code'=>3];
-            }elseif($request->valid_code_txt =='已失效') {
-                $wherevalid_code = ['valid_code'=>3];
-            }         
+        $query = Orders::query()
+        ->where('user_id', $this->user_id);
+        $this->adjustWhere($query,$request);
+        if(empty($request->order_number)) {
+            //如果不查订单号，就取消时间条件
+            $query->where('order_time', '>=', $start_time)
+            ->where('order_time', '<=', $end_time);
         }
-
-        $whereorder_number = [];
-        if (!empty($request->order_number)) {
-            $whereorder_number = ['order_id'=>$request->order_number];
-        }
+         
         
         //从登录的用户开始取出user_id
         // 加入分页功能
         $page = $request->input('page', 1);
         $pageSize = $request->input('pageSize', 20);
-
-        $query = Orders::query()
-            ->where('user_id', $this->user_id)
-            ->where('order_time', '>=', $start_time)
-            ->where('order_time', '<=', $end_time)
-            ->where($whereorder_number)
-            ->where($wherevalid_code);
-
+         
         // 克隆查询对象用于分页        
-        $paginatedResult = (clone $query)->orderBy('order_time', 'desc')->paginate($pageSize, ['*'], 'page', $page);
+        $paginatedResult = $query->orderBy('order_time', 'desc')->paginate($pageSize, ['*'], 'page', $page);
         
         // 分离列表数据和分页信息
         $lists = $paginatedResult->items();
@@ -99,18 +90,22 @@ class OrdersController extends ApiController
         $query2 = Orders::query()
             ->where('user_id', $this->user_id)
             ->where('order_time', '>=', $start_time)
-            ->where('order_time', '<=', $end_time)            
-            ->whereIn('valid_code',[16,17]);
+            ->where('order_time', '<=', $end_time)           
+            ->whereIn('valid_code',[16,17,24]);
+// dd("94>>>",$start_time,$end_time,$query2->toSql());   
         $statistics =[];
         $statistics['order_count']= (clone $query2)->count();  //
-        $statistics['order_price']= (clone $query2)->sum('total_price');
-        $statistics['estimate_fee_count']= (clone $query2)->sum('estimate_fee'); 
-        
+        $statistics['order_price']= (clone $query2)->sum('estimate_cos_price');
+        $estimate_fee_count= (clone $query2)->sum('estimate_fee'); 
+        // $statistics['estimate_fee_count']=  round($estimate_fee_count * 0.9,   2);   //不应x0。9 ，在同步商品时就直接x0.9了
+        $statistics['estimate_fee_count']=  $estimate_fee_count ;
         //遍历lists，取出status_txt
         foreach($lists as $key => &$val) {
             $val['status_txt'] = $val->status_txt;
             $val['order_time'] = $val->order_time;
-            $val['estimate_fee2'] = round($val->estimate_fee * 0.9, 2);
+            // $val['estimate_fee2'] = round($val->estimate_fee * 0.9, 2);
+            $val['estimate_fee2'] = $val->estimate_fee;
+            $val['actual_fee2'] = $val->actual_fee;
         }
         
         return response()->json([
@@ -123,7 +118,29 @@ class OrdersController extends ApiController
 
     }
 
+    //“组合”或“整理”用英文翻译
+    
+    private function adjustWhere(&$query,$request){
 
+        if (!empty($request->order_number)) {
+            $query->where('order_id',$request->order_number);
+            return  ;
+        }
+        // if (empty($request->valid_code_txt)) {
+        //     $query->whereIn('valid_code',[16,17]);
+        //     return  ;
+        // }
+        if(!empty($request->valid_code_txt) && $request->valid_code_txt!='全部') {
+            if($request->valid_code_txt =='已付款') {
+                $query->where('valid_code',16);
+            }elseif($request->valid_code_txt =='已发货') {
+                $query->where('express_status',20);
+            }elseif($request->valid_code_txt =='已完成') {
+                $query->where('valid_code',17);
+            }
+        } 
 
+    }
+    
 
 }

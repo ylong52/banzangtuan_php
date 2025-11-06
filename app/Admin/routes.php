@@ -68,4 +68,6 @@ Route::group([
     $router->resource('user-commission-settlement', 'UserCommissionSettlementController');
  
     $router->post('user-commission-settlement/getUserStats', 'UserCommissionSettlementController@getUserStats');
+
+    
 });

@@ -237,4 +237,39 @@ class Orders extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
     }
+
+    // 已经收货、应得佣金
+    /*  1，上月已经收货、应得佣金
+        $lastMonthTotalOrderActualFee = Orders::totalOrderActualFee(
+        (empty($request->user_id) ? null : $request->user_id),
+        date('Y-m-01 00:00:00', strtotime('last month')),
+        date('Y-m-t 23:59:59', strtotime('last month'))
+        2，本月已经收货、应得佣金
+        $ThisMonthTotalOrderActualFee = Orders::totalOrderActualFee(
+                (empty($request->user_id) ? null : $request->user_id),
+                date('Y-m-01 00:00:00'),
+                date('Y-m-t 23:59:59')
+            );
+    );
+    */
+    public static function totalOrderActualFee($user=null,$startTime=null,$endTime=null) {
+        
+        $query =  self::query();
+        if (!empty($user)) {
+            $query->where('user_id',$user);            
+        }
+        //      
+        $query->where('valid_code', 17);
+        if (!empty($startTime) && !empty($endTime)) {            
+            $query->whereBetween('finish_time',[$startTime,$endTime]);
+        }
+        //  
+        $data['sum_actual_fee'] = (clone $query)        
+        ->sum('actual_fee');
+
+        $data['count_actual_fee'] = (clone $query)
+        ->count();
+        return $data;
+    }
+
 }

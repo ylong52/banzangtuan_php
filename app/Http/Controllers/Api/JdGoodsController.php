@@ -40,7 +40,15 @@ class JdGoodsController extends ApiController
             $val['white_image'] = $val['white_image'] ?? '';
             $val['priceinfo'] = json_decode($val['priceinfo'],true) ?? 0;
             $val['commission_info'] = json_decode($val['commission_info'], true) ?? [];
+           
+            // 修复间接修改错误：先获取整个数组，修改后再重新赋值
+            $commissionInfo = $val['commission_info'];
+            if (isset($commissionInfo['commission'])) {
+                $commissionInfo['commission2'] = round($commissionInfo['commission'] * 0.9, 2);
+                $val['commission_info'] = $commissionInfo;
+            }
         }
+        
         $pagination = [
             'total' => $paginator->total(),
             'per_page' => $paginator->perPage(),
