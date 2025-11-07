@@ -85,7 +85,7 @@ class LotteryApiController extends H5BaseController
          * 6，如果开奖码和订单号都不存在，则返回错误信息
          */
 
-        try {
+        // try {
             $lottery_code = $request->input('lottery_code');
             $order_id = $request->input('order_number');
 
@@ -136,8 +136,7 @@ class LotteryApiController extends H5BaseController
             ->first();
             
             if ($lotteryDrawRecord) {
-                $lotteryPrizeRec = LotteryPrize::where('id', $lotteryDrawRecord->lottery_prize_id)->first();
-               
+             
                 return response()->json([
                     'code'=>200,
                     'status' => 'success',
@@ -145,7 +144,7 @@ class LotteryApiController extends H5BaseController
                     'data' => [
                         'order_no' => $order_id,
                         'lottery_code' => $processed_lottery_code,                      
-                        'prize_name' => $lotteryPrizeRec->prize_name,
+                        'prize_name' => $lotteryDrawRecord->prize_name,
                         'draw_time' => $lotteryDrawRecord->draw_time,
                         'is_history' =>1, #1表示已开奖过
                     ]
@@ -208,13 +207,14 @@ class LotteryApiController extends H5BaseController
                 ]
             ]);
             
-        } catch (\Exception $e) {
-            return response()->json([
-                'code'=>500,
-                'status' => 'error',
-                'msg' => '开奖失败：' . $e->getMessage()
-            ]);
-        }
+        // } catch (\Exception $e) {
+        //     return response()->json([
+        //         'code'=>500,
+        //         'status' => 'error',
+        //         'msg' => '开奖失败：' . $e->getMessage()
+        //     ]);
+        // }
+
     }
 
     /**
@@ -232,6 +232,50 @@ class LotteryApiController extends H5BaseController
 
 
 
+    public function queryPrize(Request $request) {
+        try {
+            $query = $request->input('query');
+            
+            // 如果关键字为空，返回错误
+            if (empty($query)) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => 'error',
+                    'msg' => '查询关键字不能为空'
+                ], 400);
+            }
+            
+            // 对 order_no 和 lottery_code 使用绝对查询（精确匹配），使用 whereOr
+            $list = LotteryDrawrecords::where('order_no', $query)
+                ->orWhere('lottery_code', $query)
+                ->select('order_no', 'lottery_code', 'prize_name', 'draw_time')
+                ->get();
+            
+            // 如果 list 为空，返回 json 错误
+            if ($list->isEmpty()) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'error',
+                    'msg' => '未找到相关开奖记录'
+                ], 404);
+            }
+            
+            // 否则返回 json 和 data 数组（未分页管理）
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'msg' => '查询成功',
+                'data' => $list
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'msg' => '查询失败：' . $e->getMessage()
+            ], 500);
+        }
+    }
 
 
 

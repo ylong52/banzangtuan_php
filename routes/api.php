@@ -117,6 +117,7 @@ Route::match(['get'], '/h5/lottery/getPrizeList',[App\Http\Controllers\Api\h5\Lo
 
 Route::match(['post'], '/h5/lottery/openLottery',[App\Http\Controllers\Api\h5\LotteryApiController::class,'openLottery']);  ##开奖
 
+Route::match(['get'], '/h5/lottery/queryPrize',[App\Http\Controllers\Api\h5\LotteryApiController::class,'queryPrize']);  ##奖品列表
 
 // H5 需要认证的路由组（使用中间件方式）
 Route::prefix('h5')->middleware('h5.auth')->group(function () {

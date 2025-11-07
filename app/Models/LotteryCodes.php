@@ -72,9 +72,9 @@ class LotteryCodes extends Model
      */
     public function scopeByCode($query, $code)
     {
-        // return $query->where('lottery_code', $code)->where("status",self::STATUS_ENABLED);
+        return $query->where('lottery_code', $code)->where("status",self::STATUS_ENABLED);
 
-        return $query->where('lottery_code', $code);
+        // return $query->where('lottery_code', $code);
     }
 
     /**
