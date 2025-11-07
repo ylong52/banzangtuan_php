@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '@/views/Home.vue'
 import Login from '@/views/Login.vue'
 import UserList from '@/views/UserList.vue'
+import MyPrizes from '@/views/MyPrizes.vue'
 
 const routes = [
   {
@@ -19,11 +20,16 @@ const routes = [
     name: 'UserList',
     component: UserList,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/my-prizes',
+    name: 'MyPrizes',
+    component: MyPrizes
   }
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory('/lottery/'),
   routes
 })
 

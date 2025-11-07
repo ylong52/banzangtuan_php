@@ -8,4 +8,8 @@ export const lotteryApi = {
   openLottery(data) {
     return apiClient.post('/h5/lottery/openLottery', data); //开奖
   },
+  // 查询中奖信息
+  queryPrizes(params) {
+    return apiClient.get('/h5/lottery/queryPrize', params)
+  },
 }

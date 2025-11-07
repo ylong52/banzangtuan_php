@@ -1,0 +1,47 @@
+# Nginx 配置示例 - 用于部署 Vue3 SPA 到 /lottery/ 路径
+
+server {
+    listen 80;
+    server_name jq2025.cn;
+    
+    # 网站根目录（根据实际情况修改）
+    root /var/www/html;
+    index index.html index.php;
+    
+    # 处理 /lottery/ 路径下的 Vue 应用
+    location /lottery/ {
+        alias /var/www/html/lottery/;  # 指向 dist 目录的内容
+        
+        # 尝试直接访问文件，如果不存在则回退到 index.html（用于 Vue Router）
+        try_files $uri $uri/ /lottery/index.html;
+        
+        # 设置正确的 MIME 类型
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+    
+    # API 代理（如果需要）
+    location /api/ {
+        proxy_pass http://localhost:8000/api/;  # 根据实际后端地址修改
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # PHP 处理（如果需要）
+    location ~ \.php$ {
+        fastcgi_pass 127.0.0.1:9000;  # 根据实际 PHP-FPM 配置修改
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+    
+    # 其他静态文件
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+

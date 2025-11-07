@@ -58,7 +58,7 @@
               禁止违规：不得篡改、伪造、倒卖抽奖码，冒用他人信息或用作弊工具批量获取资格，违者取消资格，情节严重者追究法律责任。​
             </li>
             <li style="margin:0 0 2px 0; padding-left:1.2em; text-indent:-1em;">
-              兑奖说明：中奖后需将截图发送至团长的微信号，并注明抽奖码和年月日。
+              兑奖说明：中奖后需将截图发送至客服的微信号，并注明抽奖码和年月日。
             </li>
           </ul>
         </div>
@@ -88,13 +88,12 @@
       <div v-if="prizeResult.show" class="modal-overlay" @click.self="closePrizeModal">
         <div class="modal-content">
           <div class="modal-header">
-            <h2 class="modal-title">{{ prizeResult.title }}</h2>
+            <h2 class="modal-title">🎉 恭喜中奖 🎉</h2>
           </div>
           <div class="modal-body">
             <div class="prize-info">
-              <div class="prize-label" v-if="prizeResult.isWin">恭喜获得：</div>
-              <div class="prize-label" v-else>很遗憾，您未中奖</div>
-              <div class="prize-name">{{ prizeResult.prizeName || '谢谢参与' }}</div>
+              <div class="prize-label">恭喜获得：</div>
+              <div class="prize-name">{{ prizeResult.prizeName }}</div>
             </div>
             <div class="prize-details">
               <div class="detail-row">
@@ -174,7 +173,7 @@ const prizes = [
   { name: '', color: '#FF6B9D', textColor: '#fff' },
   { name: '', color: '#C3ACD0', textColor: '#333' },
   { name: '', color: '#F7931E', textColor: '#fff' },
-  { name: '谢谢参与', color: '#00D9FF', textColor: '#333',id:8 }
+  { id: -1, name: '谢谢参与', color: '#00D9FF', textColor: '#333' }
 ]
 
 const getPrizeList = async () => {
@@ -208,8 +207,8 @@ const wheelCanvas = ref(null)
 const isSpinning = ref(false)
 const currentRotation = ref(0)
 const resultText = ref('')
-const lotteryCode = ref('')
-const orderNumber = ref('')
+const lotteryCode = ref('hq8tcw')
+const orderNumber = ref('338194088429')
 const fireworks = ref([])
 const notification = ref({
   show: false,
@@ -217,12 +216,10 @@ const notification = ref({
 })
 const prizeResult = ref({
   show: false,
-  title: '',
   prizeName: '',
   time: '',
   orderNumber: '',
-  lotteryCode: '',
-  isWin: true
+  lotteryCode: ''
 })
 const historyPrizeResult = ref({
   show: false,
@@ -317,13 +314,11 @@ function formatDateTime(date) {
 }
 
 // 显示中奖弹窗
-function showPrizeModal(prizeName, orderNumber, lotteryCode, time, isWin = true) {
-  prizeResult.value.prizeName = prizeName || '谢谢参与'
-  prizeResult.value.time = time || formatDateTime(new Date())
+function showPrizeModal(prizeName, orderNumber, lotteryCode) {
+  prizeResult.value.prizeName = prizeName
+  prizeResult.value.time = formatDateTime(new Date())
   prizeResult.value.orderNumber = orderNumber || ''
   prizeResult.value.lotteryCode = lotteryCode || ''
-  prizeResult.value.title = isWin ? '🎉 恭喜中奖 🎉' : '🎉 很遗憾，您未中奖！🎉'
-  prizeResult.value.isWin = isWin
   prizeResult.value.show = true
 }
 
@@ -402,69 +397,34 @@ async function startSpin() {
     console.log('开奖API返回:', res)
     
     // 根据API返回的奖品ID找到对应的奖品索引
-    // API返回字段：lottery_prize_id (对应转盘上奖品的id)
     let targetPrizeIndex = 0
     if (res && res.is_history==1) {
       // 显示历史中奖信息弹窗
       isSpinning.value = false
       const prizeName = res?.prize_name || ''
-      const historyOrderNumber = res?.order_no || res?.order_number || orderNumber.value
+      const historyOrderNumber = res?.order_number || orderNumber.value
       const historyLotteryCode = res?.lottery_code || lotteryCode.value
       const time = res?.draw_time || res?.created_at || ''
       showHistoryPrizeModal(prizeName, historyOrderNumber, historyLotteryCode, time)
       return
     }
-    // 使用 lottery_prize_id 字段匹配奖品
-    if (res && res.lottery_prize_id !== undefined) {
-      const prizeIndex = prizes.findIndex(p => p.id === res.lottery_prize_id)
-      if (prizeIndex !== -1) {
-        targetPrizeIndex = prizeIndex
-        console.log('找到奖品索引:', {
-          lotteryPrizeId: res.lottery_prize_id,
-          prizeIndex: prizeIndex,
-          prizeName: prizes[prizeIndex].name,
-          prizeId: prizes[prizeIndex].id
-        })
-      } else {
-        // 如果找不到对应的奖品，使用默认索引0
-        console.warn('未找到对应的奖品ID:', res.lottery_prize_id, '当前奖品列表:', prizes.map(p => ({ id: p.id, name: p.name })))
-      }
-    } else if (res && res.prize_id !== undefined) {
-      // 兼容旧字段名 prize_id
+    if (res && res.prize_id !== undefined) {
       const prizeIndex = prizes.findIndex(p => p.id === res.prize_id)
       if (prizeIndex !== -1) {
         targetPrizeIndex = prizeIndex
-        console.log('找到奖品索引(使用prize_id):', {
-          prizeId: res.prize_id,
-          prizeIndex: prizeIndex,
-          prizeName: prizes[prizeIndex].name
-        })
       } else {
-        console.warn('未找到对应的奖品ID:', res.prize_id, '当前奖品列表:', prizes.map(p => ({ id: p.id, name: p.name })))
+        // 如果找不到对应的奖品，使用默认索引0
+        console.warn('未找到对应的奖品ID:', res.prize_id)
       }
     } else {
       // 如果API没有返回奖品ID，使用随机（兼容旧逻辑）
-      // targetPrizeIndex = Math.floor(Math.random() * prizes.length)
-      targetPrizeIndex = 7;   //未中奖写死7
-      console.warn('API未返回lottery_prize_id或prize_id，使用随机索引:', targetPrizeIndex)
+      targetPrizeIndex = Math.floor(Math.random() * prizes.length)
     }
     
     // 开始转盘动画
-    // 转盘从 -Math.PI/2 (12点钟方向) 开始绘制，指针固定在顶部
-    // targetPrizeIndex * anglePerPrize 计算目标奖品的起始角度
-    // + anglePerPrize / 2 调整到奖品中心
     const anglePerPrize = 360 / prizes.length
-    const targetAngle = targetPrizeIndex * anglePerPrize + anglePerPrize / 2
-    // 360 - targetAngle 计算需要旋转的角度，使目标奖品转到顶部指针位置
-    const totalRotation = 360 * 5 + (360 - targetAngle) // 转5圈加目标角度
-    
-    console.log('转盘角度计算:', {
-      targetPrizeIndex,
-      anglePerPrize,
-      targetAngle,
-      totalRotation,
-      prizeName: prizes[targetPrizeIndex]?.name
-    })
+    const targetAngle = 360 - (targetPrizeIndex * anglePerPrize + anglePerPrize / 2)
+    const totalRotation = 360 * 5 + targetAngle // 转5圈加目标角度
     
     const duration = 4000
     const startTime = Date.now()
@@ -490,20 +450,15 @@ async function startSpin() {
         const prize = prizes[targetPrizeIndex]
         // 使用API返回的奖品名称，如果没有则使用本地名称
         const prizeName = res?.prize_name || prize.name
-         
-        targetPrizeIndex == 7 ? resultText.value = `🎉 很遗憾，您未中奖！🎉` : resultText.value = `🎉 恭喜获得：${prizeName}！🎉`
+        resultText.value = `🎉 恭喜获得：${prizeName}！🎉`
         
-        // 显示中奖弹窗，使用API返回的数据
+        // 显示中奖弹窗
         setTimeout(() => {
-          const apiOrderNo = res?.order_no || res?.order_number || orderNumber.value
-          const apiLotteryCode = res?.lottery_code || lotteryCode.value
-          const apiDrawTime = res?.draw_time || res?.created_at || formatDateTime(new Date())
-          const isWin = targetPrizeIndex !== 7
-          showPrizeModal(prizeName, apiOrderNo, apiLotteryCode, apiDrawTime, isWin)
+          showPrizeModal(prizeName, orderNumber.value, lotteryCode.value)
         }, 500)
         
         // 触发烟花效果
-        if (targetPrizeIndex != 7) {
+        if (prizeName !== '谢谢参与' && prize.id !== -1) {
           setTimeout(() => {
             for (let i = 0; i < 3; i++) {
               setTimeout(() => {
