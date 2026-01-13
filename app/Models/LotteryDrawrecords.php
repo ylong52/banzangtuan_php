@@ -27,6 +27,7 @@ class LotteryDrawrecords extends Model
         'prize_name',
         'lottery_prize_info',
         'prize_level',
+        'order_id_exist',
         'draw_time',
         'is_won'
     ];

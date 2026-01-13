@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>京券查询中心</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center; 
+        }
+        
+        /* Logo区域 */
+        .logo-container {
+            text-align: center;
+            /* margin-bottom: 40px; */
+            animation: fadeInDown 1s ease;
+        }
+        
+        .jd-logo {
+            color: #e33333;
+            font-size: 68px;
+            font-weight: bold;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .jd-logo::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #e33333;
+            font-size: 14px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        
+        .slogan {
+            color: #999;
+            font-size: 18px;
+            margin-top: 10px;
+            letter-spacing: 4px;
+        }
+        
+        .title {
+            color: #e33333;
+            font-size: 32px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 5px;
+        }
+        
+        /* 搜索区域 */
+        .search-container {
+            width: 100%;
+            max-width: 700px;
+            /* margin: 0 auto 60px; */
+            animation: fadeInUp 1s ease;
+            position: relative;
+        }
+        
+        .search-box {
+            display: flex;
+            height: 60px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 60px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .search-box:hover {
+            box-shadow: 0 8px 25px rgba(227, 51, 51, 0.25);
+            transform: translateY(-3px);
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 0 25px;
+            font-size: 18px;
+            border: none;
+            outline: none;
+            background: white;
+        }
+        
+        .search-input::placeholder {
+            color: #bbb;
+        }
+        
+        .coupon-button {
+            width: 150px;
+            background: #e33333;
+            color: white;
+            border: none;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .coupon-button:hover {
+            background: #c42a2a;
+        }
+        
+        /* 优惠券展示 */
+        .coupon-section {
+            width: 100%;
+            max-width: 1000px;
+            /* margin: 30px 0 60px; */
+            text-align: center;
+        }
+        
+        .coupon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 5px;
+        }
+        
+        .coupon-card {
+            background: linear-gradient(135deg, #fff 0%, #fff8f8 100%);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            text-align: left;
+            transition: all 0.3s ease;
+            border: 1px solid #ffe8e8;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .coupon-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(227, 51, 51, 0.2);
+        }
+        
+        .coupon-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: #e33333;
+        }
+        
+        .coupon-header {
+            display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    /* margin-bottom: 15px; */
+        }
+        
+        .coupon-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #e33333;
+        }
+        
+        .coupon-condition {
+            font-size: 14px;
+            color: #999;
+        }
+        
+        .coupon-title {
+            display: inline-block; /* 或 block */
+            max-width: 280px; /* 根据实际需要调整宽度 */
+            white-space: nowrap; /* 禁止换行 */
+            overflow: hidden; /* 隐藏超出部分 */
+            text-overflow: ellipsis; /* 用省略号表示被截断的文本 */
+            margin-top: 10px;
+        }
+        
+        .coupon-desc {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .coupon-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            /* border-top: 1px dashed #e0e0e0; */
+            padding-top: 15px;
+            /* margin-top: 15px; */
+        }
+        
+        .coupon-time {
+            font-size: 13px;
+            color: #999;
+        }
+
+        .copyurl-coupon {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+
+        .get-coupon {
+            background: #e33333;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .get-coupon:hover {
+            background: #c42a2a;
+            transform: scale(1.05);
+        }
+        
+        /* 底部信息 */
+        footer {
+            margin-top: auto;
+            padding: 30px 0;
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            width: 100%;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .footer-links a {
+            color: #666;
+            text-decoration: none;
+        }
+        
+        .footer-links a:hover {
+            color: #e33333;
+            text-decoration: underline;
+        }
+        
+        /* 动画效果 */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* 响应式设计 - 重点修改部分 */
+        @media (max-width: 768px) {
+            .jd-logo {
+                font-size: 50px;
+            }
+            
+            .search-box {
+                height: auto;
+                flex-direction: column;
+                border-radius: 15px;
+            }
+            
+            .search-input {
+                height: 80px; /* 增大输入框高度 */
+                padding: 0 20px;
+                font-size: 18px;
+                line-height: 1.5;
+            }
+            
+            .coupon-button {
+                width: 100%;
+                height: 50px; /* 减小按钮高度 */
+                font-size: 18px;
+                border-radius: 0 0 15px 15px;
+            }
+            
+            .coupon-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .jd-logo {
+                font-size: 40px;
+            }
+            
+            .slogan {
+                font-size: 16px;
+            }
+            
+            .search-input {
+                height: 100px; /* 进一步增大输入框高度 */
+                padding: 15px 20px; /* 增加内边距 */
+                font-size: 20px; /* 增大字体 */
+            }
+            
+            .coupon-button {
+                height: 45px; /* 保持按钮较低 */
+                font-size: 20px;
+            }
+            
+            .title {
+                font-size: 26px;
+            }
+        }
+
+        /* 新增自定义弹窗样式 */
+        .custom-alert {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .alert-content {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        
+        .alert-message {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+            line-height: 1.5;
+        }
+        
+        .alert-link {
+            display: block;
+            color: #e33333;
+            text-decoration: none;
+            font-size: 16px;
+            margin: 15px 0;
+            transition: all 0.3s;
+        }
+        
+        .alert-link:hover {
+            text-decoration: underline;
+            color: #c42a2a;
+        }
+        
+        .alert-button {
+            background: #e33333;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        .alert-button:hover {
+            background: #c42a2a;
+        }
+
+        .btn-group { 
+    display: flex; /* 使子元素水平排列 */
+    justify-content: space-around; /* 平均分布间距 */
+    gap: 10px; /* 按钮间额外间距（可选，根据实际调整） */
+}
+
+.btn-group .get-coupon { 
+    flex: 1; /* 按钮平均分配父容器宽度 */
+    padding: 10px 15px; /* 内边距 */
+    border: none; /* 去除边框 */
+    border-radius: 5px; /* 圆角 */
+    cursor: pointer; /* 鼠标指针样式 */
+    font-size: 14px; /* 字体大小 */
+    margin-top: 5px;
+}
+
+/* 三个按钮不同背景色（可根据需求调整色值） */
+.btn-group .get-coupon:nth-child(1) { background-color: #4CAF50; /* 绿色 */ }
+.btn-group .get-coupon:nth-child(2) { background-color: #2196F3; /* 蓝色 */ }
+.btn-group .get-coupon:nth-child(3) { background-color: #FF9800; /* 橙色 */ }
+
+.btn-group .btn {
+    font-size: 14px;
+}
+
+body {
+    padding-top: 0px;;
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Logo区域 -->
+        <div class="logo-container">
+            <div class="jd-logo">京券</div>
+            <div class="slogan">多·快·好·省</div>
+        </div>
+        
+        <h1 class="title">京东优惠券查询中心</h1>
+        
+        <!-- 搜索区域 -->
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" class="search-input keyword" placeholder="请输入京东商品链接" value=""  >
+                <button class="coupon-button">
+                    <i class="fas fa-tag"></i> 查券
+                </button>
+            </div>
+            <div class="btn-group">
+            <button class="get-coupon btn" onclick="window.open('http://jd2025.cn', '_blank')"  >取消回收</button>
+          
+            <button class="get-coupon btn" onclick="window.open('https://www.yuque.com/u22639612/pdw0ac/geg4ygcvsdffnagz?singleDoc#', '_blank')"  >查券教程</button>
+            </div>
+        </div>
+        
+        <!-- 优惠券展示 -->
+        <div class="coupon-section" style="display: none;">             
+            <div class="coupon-grid">
+                <!-- 优惠券1 -->                 
+                <div class="coupon-card">
+                    <img src="good_a.png" style="width:85%; display: block; margin: 0 auto;" />
+                    <h3 class="coupon-title">家电数码通用券家电数码通用券家电数码通用券</h3>
+                    <div class="coupon-header">
+                        <span>售价</span>
+                        <div class="coupon-value">¥100</div>                        
+                    </div>
+                    
+                    <div class="coupon-footer">
+                        <div class="coupon-time">评论3000</div>
+                        <button class="copyurl-coupon" onclick="copyCouponLink()">复制券链接</button>
+                        <button class="get-coupon">点击领券</button>
+                    </div>
+                </div>
+                
+                
+            </div>
+        </div>
+    </div>
+    
+    <!-- 底部信息 -->
+    <footer>
+        <div class="footer-links">
+            <a href="#">关于我们</a>
+            <a href="#">优惠券说明</a>
+            <a href="#">使用帮助</a>
+            <a href="#">问题反馈</a>
+        </div>
+        <p>Copyright © 2005-2025 京券 版权所有</p>
+    </footer>
+    
+    <!-- 新增自定义弹窗 -->
+    <div class="custom-alert" id="customAlert">
+        <div class="alert-content">
+            <div class="alert-message" id="alertMessage"></div>
+            <!-- <a href="#" class="alert-link" id="tutorialLink">查看京东商品链接教程</a> -->
+            <button class="alert-button" id="alertConfirm">确定</button>
+        </div>
+    </div>
+
+    <script>
+    var shortURL = '';    
+        // 自定义弹窗函数
+        function showAlert(message) {
+            const alertBox = document.getElementById('customAlert');
+            const alertMessage = document.getElementById('alertMessage');
+            const confirmBtn = document.getElementById('alertConfirm');
+            
+            alertMessage.textContent = message;
+            alertBox.style.display = 'flex';
+            
+            // // 教程链接点击事件
+            // document.getElementById('tutorialLink').addEventListener('click', function(e) {
+            //     e.preventDefault();
+            //     // alert('这里可以跳转到教程页面\n实际应用中应替换为真实教程链接');
+            //     // window.location.href = "https://example.com/jd-link-tutorial"; // 实际链接
+            // });
+            
+            // // 确认按钮点击事件
+            confirmBtn.onclick = function() {
+                alertBox.style.display = 'none';
+            };
+        }
+
+        // 查券功能实现
+        document.querySelector('.coupon-button').addEventListener('click', function() {
+            const searchTerm = document.querySelector('.search-input').value;
+            if(searchTerm.trim() === '') {
+                showAlert('请输入京东商品链接');
+                return;
+            }
+            getAPiQuery();
+        });
+        
+        // 回车键搜索
+        document.querySelector('.search-input').addEventListener('keypress', function(e) {
+            if(e.key === 'Enter') {
+                document.querySelector('.coupon-button').click();
+            }
+        });
+        
+        // 领取优惠券按钮
+        document.querySelectorAll('.get-coupon').forEach(button => {
+            button.addEventListener('click', function() {
+                // const couponValue = this.closest('.coupon-card').querySelector('.coupon-value').textContent;
+                // alert(`成功领取${couponValue}优惠券！\n可在"我的优惠券"中查看`);
+                // this.textContent = "已领取";
+                // this.style.background = "#28a745";
+                // this.disabled = true;
+
+                // const couponValue = this.closest('.coupon-card').querySelector('.coupon-value').textContent;
+                // showAlert(`成功领取${couponValue}优惠券！\n可在"我的优惠券"中查看`);
+                // this.textContent = "已领取";
+                // this.style.background = "#28a745";
+                // this.disabled = true;
+                // 打开shortURL链接
+                if (shortURL) {
+                    window.open(shortURL, '_blank');
+                }
+
+            });
+        });
+
+        function copyCouponLink() {
+            //复制卷的链接
+            const couponLink = shortURL; // 实际链接需替换
+            const tempInput = document.createElement("input");
+            tempInput.value = couponLink;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            showAlert("复制成功，请打开京东app粘贴搜索");
+        }
+    </script>
+
+<script>
+
+function getAPiQuery() {
+    _keyword = $('.keyword').val().trim();
+    if (_keyword == "") {
+        showAlert('请输入商品链接');
+        return;
+    }
+    const pattern = /(?=.*京东)(?=.*https?:\/\/)/u;
+    if (!pattern.test(_keyword)) {
+        showAlert('请输入京东商品链接');
+        return;
+    }
+    try {
+
+    
+        $.ajax({
+            url: '/jdapi.php',
+            method: 'GET',
+            data: { 'keyword': _keyword },
+            success: function(response) {
+                console.log('AJAX成功返回结果:', response.data);
+                // 新增解析逻辑
+                if (typeof response === 'string') {
+                    try {
+                        response = eval("(" + response + ")");
+                    } catch (e) {
+                        console.error('解析响应失败:', e);
+                        return;
+                    }
+                }
+                if (response.code === 200 && response.data) {           
+                    var data = response.data;
+                    // 更新优惠券标题
+                    $('.coupon-title').text(data.skuName);
+                    // 更新价格
+                    $('.coupon-value').text('¥' + data.purchasePrice);
+                    // 更新评论数
+                    $('.coupon-time').text('评论' + data.comments);
+                    // 更新商品图片
+                    $('.coupon-card img').attr('src', data.imageUrl);
+                    $(".coupon-section").show();
+                    shortURL = response.data.shortURL
+                    $(".keyword").val('');
+                } else {
+                    console.error('响应数据格式错误:', response);
+                    $(".coupon-section").hide();
+                    showAlert(response.msg);
+                    $(".keyword").val('');
+                }
+            }
+        });
+       
+
+    } catch (error) {
+        console.error('AJAX请求失败:', error);        
+        debugger;
+        $(".coupon-section").hide();
+        showAlert('请求失败，请重试');
+    }
+
+}
+</script>    
+</body>
+</html>

@@ -97,10 +97,15 @@ Route::middleware('auth:sanctum')->group(function () {
  
     Route::post('/jdgoods/share', [App\Http\Controllers\Api\JdGoodsController::class, 'share']);  #商品分享
 
+    Route::match(['post'], '/coupon-by-promotion-batch',[App\Http\Controllers\Api\CouponByPromotionBatchController::class,'processTextWithPromotion']);
+    
 });
 
 
 // Route::match(['get', 'post'], '/jdshop/bysubunionid',[App\Http\Controllers\Api\JdApiController::class,'bysubunionid']);
+
+
+
 
 
 

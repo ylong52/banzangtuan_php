@@ -1,0 +1,370 @@
+<?php
+
+/**
+ * CouponByPromotion 类
+ *
+ * 提供优惠券相关的文本处理和京东联盟API调用功能
+ * 包含URL提取、随机内容追加、礼金券生成和推广链接生成等功能
+ */
+class CouponByPromotion
+{
+    private $config;
+    private $client;
+
+    /**
+     * 构造函数
+     * @param array $config 配置参数，包含appKey、appSecret等
+     */
+    public function __construct(array $config = [])
+    {
+        $defaultConfig = [
+            'appKey' => '',
+            'appSecret' => '',
+            'accessToken' => '',
+            'serverUrl' => 'https://api.jd.com/routerjson'
+        ];
+
+        $this->config = array_merge($defaultConfig, $config);
+
+        // 只有在配置了appKey和appSecret时才初始化客户端
+        if (!empty($this->config['appKey']) && !empty($this->config['appSecret'])) {
+            // 优先使用命名空间下的服务类（Laravel风格）
+            if (class_exists('App\\Services\\JdUnionClient')) {
+                $this->client = new \App\Services\JdUnionClient($this->config);
+            } else {
+                require_once 'docs/奖金20260110/JdUnionClient.php';
+                $this->client = new JdUnionClient($this->config);
+            }
+        }
+    }
+
+    /**
+     * 提取包含"https"链接的行数据
+     * @param string $text 包含链接的文本
+     * @return array 返回包含https链接的行数组
+     */
+    public function extractHttpsLines(string $text): array
+    {
+        $lines = explode("\n", $text);
+        $result = [];
+
+        foreach ($lines as $line) {
+            $trimmedLine = trim($line);
+            if (strpos($trimmedLine, 'https') !== false) {
+                $result[] = $trimmedLine;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * 在URL后面添加随机内容并更新整个字符串
+     * @param string $text 原始文本
+     * @param array $httpsLines 包含https链接的行数组
+     * @return string 返回更新后的完整字符串
+     */
+    public function addRandomContentToUrls(string $text, array $httpsLines): string
+    {
+        $updatedText = $text;
+
+        // 随机内容选项
+        $randomContents = [
+            ' 🔥限时优惠',
+            ' ⭐超级划算',
+            ' 💰超值推荐',
+            ' 🎉热门商品',
+            ' 🏷️厂家直销',
+            ' 📦现货速发',
+            ' 🎁赠品丰富',
+            ' ⚡闪电发货',
+            ' 💯正品保证',
+            ' 🌟品质优良'
+        ];
+
+        foreach ($httpsLines as $line) {
+            $randomContent = $randomContents[array_rand($randomContents)];
+            $updatedLine = $line . $randomContent;
+
+            // 替换原始字符串中的对应行
+            $updatedText = str_replace($line, $updatedLine, $updatedText);
+        }
+
+        return $updatedText;
+    }
+
+    /**
+     * 调用京东API的通用方法
+     * @param string $method API方法名
+     * @param array $bizParams 业务参数
+     * @return array 返回API调用结果
+     */
+    public function callJdApi(string $method, array $bizParams): array
+    {
+        if (!$this->client) {
+            return ['success' => false, 'message' => 'API客户端未初始化，请配置appKey和appSecret'];
+        }
+
+        try {
+            // 更新配置中的method
+            $this->config['method'] = $method;
+            $this->config['timestamp'] = date('Y-m-d H:i:s');
+
+            // 创建新的客户端实例以使用新的method（优先使用命名空间服务类）
+            if (class_exists('App\\Services\\JdUnionClient')) {
+                $tempClient = new \App\Services\JdUnionClient($this->config);
+            } else {
+                require_once 'docs/奖金20260110/JdUnionClient.php';
+                $tempClient = new JdUnionClient($this->config);
+            }
+            $response = $tempClient->execute($bizParams);
+
+            if (isset($response['error'])) {
+                return ['success' => false, 'message' => "调用失败：" . $response['message']];
+            } elseif ($response['http_code'] === 200) {
+                if (isset($response['parsed']['error_response'])) {
+                    return ['success' => false, 'message' => "接口返回错误：" . json_encode($response['parsed']['error_response'], JSON_UNESCAPED_UNICODE)];
+                } else {
+                    return ['success' => true, 'message' => '接口调用成功', 'data' => $response['parsed']];
+                }
+            } else {
+                return ['success' => false, 'message' => "HTTP 请求失败，状态码：" . $response['http_code']];
+            }
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => '异常：' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * 创建礼金券
+     * @param array $couponReq 礼金券请求参数
+     * @return string 返回giftCouponKey，失败返回空字符串
+     */
+    public function createGiftCoupon(array $couponReq): string
+    {
+        $method = 'jd.union.open.coupon.gift.get';
+
+        // 默认参数
+        $defaultParams = [
+            'receiveStartTime' => date('Y-m-d 00', strtotime('today')),
+            'receiveEndTime' => date('Y-m-d 00', strtotime('+1 day')),
+            'effectiveDays' => 1,
+            'expireType' => 1
+        ];
+
+        $bizParams = [
+            'couponReq' => array_merge($defaultParams, $couponReq)
+        ];
+
+        $result = $this->callJdApi($method, $bizParams);
+
+        if ($result['success']) {
+            $giftRet = $result['data']['jd_union_open_coupon_gift_get_responce']['getResult'] ?? '';
+            if ($giftRet) {
+                $giftRet2 = json_decode($giftRet, true);
+                return $giftRet2['data']['giftCouponKey'] ?? '';
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * 生成推广链接
+     * @param array $promotionReq 推广链接请求参数
+     * @return string 返回shortURL，失败返回空字符串
+     */
+    public function generatePromotionLink(array $promotionReq): string
+    {
+        $method = 'jd.union.open.promotion.bysubunionid.get';
+
+        // 默认参数
+        $defaultParams = [
+            'sceneld' => 1
+        ];
+
+        $bizParams = [
+            'promotionCodeReq' => array_merge($defaultParams, $promotionReq)
+        ];
+
+        $result = $this->callJdApi($method, $bizParams);
+
+        if ($result['success']) {
+            $getResult = $result['data']['jd_union_open_promotion_bysubunionid_get_responce']['getResult'] ?? '';
+            if ($getResult) {
+                $getResult2 = json_decode($getResult, true);
+                return $getResult2['data']['shortURL'] ?? '';
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * 完整的文本处理和推广流程
+     * 提取URL、创建礼金券+推广链接、追加随机内容
+     * @param string $text 原始文本
+     * @return array 返回处理结果数组
+     */
+    public function processTextWithPromotion(string $text): array
+    {
+        $result = [
+            'success' => false,
+            'updatedText' => $text,
+            'links' => [],
+            'message' => ''
+        ];
+
+        try {
+            // 步骤1：提取HTTPS链接
+            $httpsLines = $this->extractHttpsLines($text);
+            $result['links'] = array_map(function($url) {
+                return ['original' => $url, 'giftCouponKey' => '', 'shortURL' => ''];
+            }, $httpsLines);
+
+            // 步骤2：如果配置了API，为每个链接生成礼金券和推广链接
+            if ($this->client) {
+                foreach ($result['links'] as &$link) {
+                    // 这里需要商品ID等参数，实际使用时需要从URL或其他地方获取
+                    // 示例：假设有itemId、discount、amount等参数
+                    // $link['giftCouponKey'] = $this->createGiftCoupon([...]);
+                    // $link['shortURL'] = $this->generatePromotionLink([...]);
+                }
+            }
+
+            // 步骤3：添加随机内容
+            $result['updatedText'] = $this->addRandomContentToUrls($text, $httpsLines);
+            $result['success'] = true;
+            $result['message'] = '处理完成';
+
+        } catch (Exception $e) {
+            $result['message'] = '处理异常：' . $e->getMessage();
+        }
+
+        return $result;
+    }
+
+    /**
+     * 简化版单URL转链实现（来源于 __bysubunionid2 的整理）
+     * - 校验URL格式
+     * - 检查 subUnionId
+     * - 构建 promotion 参数结构（仅返回示例结果，不调用外部API）
+     *
+     * @param string $goods_url 待转链的原始URL
+     * @param string|null $subUnionId 子联盟ID（可直接传入测试用）
+     * @return array 转链结果结构，保留与原实现相似的字段
+     */
+    public function bysubunionidSingleUrl(string $goods_url, ?string $subUnionId = null): array
+    {
+        try {
+            $goods_url = trim($goods_url);
+            $pattern = '/(https?:\\/\\/[^\\s]+)/u';
+
+            if (!preg_match($pattern, $goods_url)) {
+                throw new Exception('转链取得的URL错误,无法分析!');
+            }
+
+            preg_match($pattern, $goods_url, $matches);
+            $task_goods_url = $matches[1];
+            //加入固定值，测试使用
+            $subUnionId = 'JQ2025gakr9t';
+            if (empty($subUnionId)) {
+                // 在真实环境中从用户表获取 subUnionId，这里为测试必须提供
+                throw new Exception('subUnionId参数错误!');
+            }
+
+            // 构建 promotion 参数（示例，仅用于记录）
+            $promotionBizParams = [
+                'promotionCodeReq' => [
+                    'materialId' => $task_goods_url,
+                    'subUnionId' => $subUnionId,
+                    'sceneld' => 1
+                ]
+            ];
+
+            $method =  "jd.union.open.promotion.bysubunionid.get";
+      
+            if (function_exists('save_log')) {
+                save_log(['promotionBizParams'=>$promotionBizParams,'method'=>$method],'bysubunionid');
+            } else {
+                // fallback logging for test environment
+                error_log('[bysubunionid] ' . json_encode(['promotionBizParams'=>$promotionBizParams,'method'=>$method], JSON_UNESCAPED_UNICODE));
+            }
+            $config = [
+                'appKey'     => $this->config['appKey'] ?? '',
+                'appSecret'  => $this->config['appSecret'] ?? '',
+                'accessToken'=> $this->config['accessToken'] ?? '',
+                'serverUrl'  => $this->config['serverUrl'] ?? 'https://api.jd.com/routerjson',
+                'method'     => $method,
+                'format'     => 'json',
+                'v'          => '1.0',
+                'timestamp'  => date('Y-m-d H:i:s'),
+            ];
+            // 优先使用命名空间下的服务类（如 App\Services\JdUnionClient），否则降级为本地实现
+            if (class_exists('App\\Services\\JdUnionClient')) {
+                $client = new \App\Services\JdUnionClient($config);
+            } else {
+                require_once 'docs/奖金20260110/JdUnionClient.php';
+                $client = new JdUnionClient($config);
+            }
+
+            $response = $client->execute($promotionBizParams);
+
+            // 解析响应并返回结构化结果（尽量与原实现保持一致）
+            if (isset($response['error'])) {
+                throw new Exception('调用JD API失败：' . ($response['message'] ?? json_encode($response['error'], JSON_UNESCAPED_UNICODE)));
+            }
+            if (($response['http_code'] ?? 0) !== 200) {
+                throw new Exception('HTTP 请求失败，状态码：' . ($response['http_code'] ?? 'unknown'));
+            }
+
+            $parsed = $response['parsed'] ?? [];
+            $getResultStr = $parsed['jd_union_open_promotion_bysubunionid_get_responce']['getResult'] ?? '';
+            if (empty($getResultStr)) {
+                throw new Exception('操作失败：未返回 getResult');
+            }
+
+            $getResult = json_decode($getResultStr, true);
+            if (!is_array($getResult)) {
+                throw new Exception('getResult JSON 解析失败');
+            }
+
+            // 处理特殊code（如礼金2001925）或正常code==200
+            if (isset($getResult['code']) && $getResult['code'] === '2001925') {
+                // 若需礼金逻辑，可尝试使用现有的 createGiftCoupon/generatePromotionLink 方法
+                $giftShort = $this->generatePromotionLink(['materialId' => $task_goods_url, 'giftCouponKey' => '', 'couponUrl' => '']);
+                $finalShort = $giftShort ?: ($getResult['data']['shortURL'] ?? '');
+            } else {
+                $finalShort = $getResult['data']['shortURL'] ?? '';
+            }
+
+            if (empty($finalShort)) {
+                throw new Exception('转链失败：未返回 shortURL');
+            }
+
+            $retShortURL = preg_replace($pattern, $finalShort, $goods_url);
+
+            return [
+                'errorTag' => false,
+                'rawURL' => $goods_url,
+                'shortURL' => $retShortURL,
+                'commissionShare' => '',
+                'viewDetailUrl' => $finalShort,
+                'isOrderTag' => false,
+                'promotionBizParams' => $promotionBizParams
+            ];
+        } catch (Exception $e) {
+            $retShortURL = preg_replace('/(https?:\\/\\/[^\\s]+)/u', '<span style="color:red;">$1</span>', $goods_url);
+            return [
+                'errorTag' => true,
+                'rawURL' => $goods_url,
+                'shortURL' => $retShortURL,
+                'commissionShare' => '',
+                'viewDetailUrl' => '',
+                'isOrderTag' => false,
+                'errorMsg' => $e->getMessage()
+            ];
+        }
+    }
+}
+

@@ -5,6 +5,7 @@ namespace App\Admin\Controllers;
 use Encore\Admin\Controllers\AdminController;
 use Encore\Admin\Grid;
 use Encore\Admin\Grid\Filter;
+use Encore\Admin\Form;
 use App\Models\LotteryDrawrecords;
 
 class LotteryDrawrecordsController extends AdminController
@@ -28,6 +29,9 @@ class LotteryDrawrecordsController extends AdminController
             return $value ?: '-';
         });
         $grid->column('order_no', __('订单号'))->sortable();
+        $grid->column('order_id_exist', __('订单号是否存在'))->display(function ($value) {
+            return $value == 1 ? '存在' : '不存在';
+        });
         $grid->column('lottery_code', __('开奖码'))->sortable();
         $grid->column('prize_name', __('奖项名称'));
         $grid->column('prize_level', __('奖品等级'))->display(function ($value) {
@@ -43,6 +47,10 @@ class LotteryDrawrecordsController extends AdminController
             ];
             return $levels[$value] ?? '未知';
         });
+       
+        // $grid->column('is_won', __('是否中奖'))->display(function ($value) {
+        //     return $value == 1 ? '中奖' : '未中奖';
+        // });
         $grid->column('draw_time', __('开奖时间'))->sortable()->display(function ($value) {
             return $value ? date('Y-m-d H:i:s', strtotime($value)) : '';
         });
@@ -86,16 +94,21 @@ class LotteryDrawrecordsController extends AdminController
         // 禁用新增按钮
         $grid->disableCreateButton();
         // 禁用导出
-        $grid->disableExport();
-        // 禁用批量操作
-        $grid->disableBatchActions();
-        // 禁用行选择器
-        $grid->disableRowSelector();
+        // $grid->disableExport();
+        // 启用批量操作（包含批量删除）
+        $grid->tools(function ($tools) {
+            $tools->batch(function ($batch) {
+                // 启用批量删除
+                $batch->disableDelete(false);
+            });
+        });
+        // 启用行选择器（全选功能）
+        // $grid->disableRowSelector(); // 已移除，启用全选功能
         // 禁用操作列（编辑、删除）
-        $grid->disableActions();
+        // $grid->disableActions();
         
         // 启用分页（默认每页20条）
-        $grid->paginate(20);
+        $grid->paginate(50);
         
         // 默认按开奖时间降序排列
         $grid->model()->orderBy('draw_time', 'desc');
@@ -103,5 +116,17 @@ class LotteryDrawrecordsController extends AdminController
         return $grid;
     }
 
-    
+    /**
+     * 表单方法（批量删除需要此方法存在）
+     * 虽然禁用了创建和编辑功能，但批量删除操作需要此方法
+     */
+    protected function form()
+    {
+        $form = new Form(new LotteryDrawrecords());
+        
+        // 由于禁用了创建和编辑功能，这里不需要定义表单字段
+        // 但方法必须存在以支持批量删除功能
+        
+        return $form;
+    }
 }
